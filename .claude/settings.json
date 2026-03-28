@@ -57,6 +57,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Read|Glob|Grep|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/privacy-guard.sh",
+            "timeout": 5
+          }
+        ]
       }
     ]
   }

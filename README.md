@@ -38,6 +38,10 @@ cp .env.example .env   # Fill in HA_HOST, HA_URL, HA_TOKEN, SSH_USER
 make setup             # Python venv + dependencies
 ```
 
+> **Privacy:** Claude Code reads your config files to help you. This includes entity IDs,
+> room names, and automation logic. See [PRIVACY.md](PRIVACY.md) for details and how to
+> enable privacy mode.
+
 Then open Claude Code in the repo and say **"set up my home"**. That's it -- Claude handles the rest.
 
 **New here?** [SETUP.md](SETUP.md) (prerequisites) --> [PROMPTING-GUIDE.md](PROMPTING-GUIDE.md) (how to use)

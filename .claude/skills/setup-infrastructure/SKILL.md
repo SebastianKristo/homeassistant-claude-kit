@@ -13,19 +13,34 @@ This skill configures the mechanical layer: HA API connectivity, SSH access, and
 initial config pull. It is **idempotent** — run it any time to verify or repair the
 connection without affecting your actual configuration.
 
-## Step 1: Data Consent
+## Step 1: Data Consent & Privacy Mode
 
 **Only ask once per session.** If the user already consented during an earlier invocation
 of this skill in the same conversation, skip this step entirely.
 
-Before reading any Home Assistant data, inform the user:
+**1a. Data consent** — Before reading any Home Assistant data, inform the user:
 
-> "This skill will connect to your Home Assistant instance, read your entity registry,
-> and send that data to Anthropic's API as part of this Claude conversation. Your entity
-> IDs, area names, and device names will be visible in this session.
+> "This skill will connect to your Home Assistant instance and read your entity registry,
+> automation configs, and documentation files. This data is sent to Anthropic's API as
+> part of this Claude conversation. See PRIVACY.md for full details.
 > Continue? (yes / no)"
 
 If the user says no, stop here and explain they can still use the repo manually.
+
+**1b. Privacy mode offer** — Only ask if consent was given. Only ask once per session.
+
+First check if privacy mode is already active: `test -f .claude/privacy-patterns`. If it is,
+say "Privacy mode is already enabled" and skip the offer.
+
+If not active, ask:
+
+> "Would you like to enable privacy mode? This blocks Claude from directly reading your
+> credentials, personal data files, and runtime state. Setup still works — shell commands
+> handle connectivity. You can toggle this later with `make privacy-on` / `make privacy-off`.
+> Enable privacy mode? (yes / no)"
+
+If yes: `cp .claude/privacy-patterns.example .claude/privacy-patterns`
+If no: proceed without it.
 
 ## Step 2: Check .env
 
@@ -56,7 +71,13 @@ including `# ...` text. Use only full-line comments (lines starting with `#`).
 
 Wait for the user to fill in `.env` before continuing.
 
-**If exists:** Load the values and proceed.
+**If exists and privacy mode is OFF:** Load the values and proceed.
+
+**If exists and privacy mode is ON** (`test -f .claude/privacy-patterns`):
+Tell the user: "Privacy mode is active — I can't read `.env` directly. Please verify it
+has `HA_TOKEN`, `HA_URL`, `HA_HOST`, `SSH_USER` filled in. The next step will validate
+your connection." Then proceed to Step 3 — the curl test validates the values work via
+`source .env` (shell sourcing is intentionally not blocked by privacy mode).
 
 ## Step 3: Validate HA API Token
 

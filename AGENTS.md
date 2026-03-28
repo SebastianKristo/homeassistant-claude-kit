@@ -16,7 +16,7 @@ Tool-agnostic conventions for AI coding assistants (Cursor, GitHub Copilot, Wind
 
 ### Always Do
 - Read `docs/system-*.md` for the relevant domain before modifying automations
-- Read `docs/house-rules.md` before adding automations that affect routines
+- Read `docs/house-rules.md` before adding automations that affect routines. If the file is inaccessible (privacy mode), ask the user for relevant constraints.
 - Run `make validate` after editing any YAML in `config/`
 - Reload the relevant domain after `make push` (`automation/reload`, `script/reload`, etc.)
 - Update `docs/system-*.md` after any configuration change

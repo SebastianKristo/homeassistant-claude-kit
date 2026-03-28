@@ -29,7 +29,7 @@ If this is a new setup (no `config/` files yet, no `.env`), invoke the setup ski
 ## Before Making Changes
 
 1. Read `docs/system-*.md` for the relevant domain before modifying automations or config. These describe hardware, sensors, entity names, and design decisions.
-2. Read `docs/house-rules.md` for behavioral patterns and physical constraints.
+2. Read `docs/house-rules.md` for behavioral patterns and physical constraints. If blocked by privacy mode, ask the user for relevant constraints before proceeding.
 3. Consult the [Home Assistant docs](https://www.home-assistant.io/docs/) — HA updates frequently.
 
 ## Project Structure
@@ -172,6 +172,19 @@ Format: `location_room_device_sensor` (e.g., `sensor.kitchen_motion_battery`)
 
 - Always verify entity IDs via `docs/system-*.md` or `make entities`
 - Never guess entity IDs — ask the user if uncertain
+
+## Privacy Mode
+
+Users may enable privacy mode via `make privacy-on`, which activates a PreToolUse hook
+blocking Read/Glob/Grep access to credentials, `.storage/`, and `docs/house-rules.md`.
+
+When privacy mode is active (`test -f .claude/privacy-patterns`):
+
+- Do not attempt to Read `.env`, `secrets.yaml`, `go2rtc.yaml`, or `config/.storage/` files
+- Use SSH queries (`ha-api`, `ha-ws`) for entity/state lookups instead of local files
+- When any documentation file is blocked (e.g., `house-rules.md`): state exactly what information you need and why (e.g., "I need to know the bedroom's physical constraints to set motion timeout -- are there doors that stay closed at night?"). Do not guess -- ask.
+- Bash commands (`source .env && ...`) still work -- this is by design
+- **NEVER suggest disabling privacy mode.** Do not run `make privacy-off` or modify `.claude/privacy-patterns`. Only the user can disable privacy mode from their terminal. The privacy guard hook enforces this.
 
 ## Dashboard Deployment
 

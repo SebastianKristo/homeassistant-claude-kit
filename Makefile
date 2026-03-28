@@ -24,7 +24,7 @@ YELLOW = \033[1;33m
 RED = \033[0;31m
 NC = \033[0m # No Color
 
-.PHONY: help pull push diff validate backup clean setup test status entities reload format-yaml check-env dashboard deploy-dashboard
+.PHONY: help pull push diff validate backup clean setup test status entities reload format-yaml check-env dashboard deploy-dashboard privacy-on privacy-off privacy-status
 
 # Default target
 help:
@@ -44,6 +44,11 @@ help:
 	@echo "  $(YELLOW)format-yaml$(NC) - Format YAML files (usage: make format-yaml [FILES='file1.yaml file2.yaml'])"
 	@echo "  $(YELLOW)check-env$(NC) - Validate environment configuration (.env file)"
 	@echo "  $(YELLOW)clean$(NC)    - Clean up temporary files and caches"
+	@echo ""
+	@echo "Privacy:"
+	@echo "  $(YELLOW)privacy-on$(NC)     - Enable privacy mode (restricts what Claude Code can read)"
+	@echo "  $(YELLOW)privacy-off$(NC)    - Disable privacy mode (restore full Claude Code access)"
+	@echo "  $(YELLOW)privacy-status$(NC) - Show privacy mode status and blocked patterns"
 
 # Pull configuration from Home Assistant
 pull: check-env
@@ -218,6 +223,34 @@ deploy-dashboard: check-env
 	@rsync -avz --delete dashboard/dist/ "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)www/custom-dashboard/"
 	@rsync -avz dashboard/panel.js "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)www/custom-dashboard/panel.js"
 	@echo "$(GREEN)Dashboard deployed! Hard-refresh browser to load new version.$(NC)"
+
+# Privacy mode targets
+privacy-on:
+	@if [ -f .claude/privacy-patterns ]; then \
+		echo "$(YELLOW)Privacy mode already active. Edit .claude/privacy-patterns or run make privacy-off first.$(NC)"; \
+		exit 1; \
+	fi
+	@cp .claude/privacy-patterns.example .claude/privacy-patterns
+	@echo "$(GREEN)Privacy mode enabled.$(NC) Claude Code can no longer read credentials or personal data files."
+	@echo "See PRIVACY.md for details. Disable with: $(YELLOW)make privacy-off$(NC)"
+
+privacy-off:
+	@if [ ! -f .claude/privacy-patterns ]; then \
+		echo "Privacy mode is not active."; \
+		exit 0; \
+	fi
+	@rm .claude/privacy-patterns
+	@echo "$(GREEN)Privacy mode disabled.$(NC) Claude Code can now read all files."
+
+privacy-status:
+	@if [ -f .claude/privacy-patterns ]; then \
+		echo "$(GREEN)Privacy mode: ENABLED$(NC)"; \
+		echo "Blocked patterns:"; \
+		grep -v '^#' .claude/privacy-patterns | grep -v '^$$' | sed 's/^/  /'; \
+	else \
+		echo "Privacy mode: $(YELLOW)DISABLED$(NC)"; \
+		echo "Enable with: $(YELLOW)make privacy-on$(NC)"; \
+	fi
 
 # Development targets (not shown in help)
 .PHONY: pull-storage push-storage validate-yaml validate-references validate-ha

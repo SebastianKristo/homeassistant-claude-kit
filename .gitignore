@@ -169,5 +169,6 @@ config/.storage/
 # Public kit specific
 config/go2rtc.yaml
 .claude/projects/
+.claude/privacy-patterns
 memory/
 setup-state.json

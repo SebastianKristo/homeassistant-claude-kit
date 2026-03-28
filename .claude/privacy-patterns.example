@@ -1,0 +1,25 @@
+# Privacy mode for homeassistant-claude-kit
+# Copy to .claude/privacy-patterns to activate: make privacy-on
+# See PRIVACY.md for details on what this blocks and its limitations.
+
+# Credentials -- HA tokens, passwords, API keys
+.env
+dashboard/.env.local
+config/secrets.yaml
+
+# Subsystem credentials -- ESPHome WiFi, Zigbee MQTT, go2rtc RTSP
+config/esphome/
+config/zigbee2mqtt/
+config/go2rtc.yaml
+
+# Runtime state -- auth tokens, entity registries, config entries
+config/.storage/
+
+# Database -- full state history (can be large)
+*.db
+
+# Personal data -- household routines, behavioral patterns
+docs/house-rules.md
+
+# Session memory -- conversation context from prior sessions
+memory/
