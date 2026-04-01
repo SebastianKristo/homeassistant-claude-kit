@@ -78,9 +78,8 @@ export function Touchpad({ onAction, className = "" }: TouchpadProps) {
   return (
     <div
       data-no-drag
-      className={`w-full min-h-0 shrink rounded-[22px] touch-none select-none ${className}`}
+      className={`w-full rounded-[32px] touch-none select-none ${className}`}
       style={{
-        aspectRatio: "1",
         background: flashGradient
           ?? "linear-gradient(145deg, var(--color-bg-elevated), var(--color-bg-card))",
         border: "1px solid rgba(255,255,255,0.06)",

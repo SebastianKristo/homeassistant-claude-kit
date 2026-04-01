@@ -1,0 +1,93 @@
+Dashboard Light:
+  modes:
+    light:
+      primary-background-color: "#f8f9fb"
+      secondary-background-color: "#f0f1f5"
+      card-background-color: "#ffffff"
+      primary-color: "#6366f1"
+      accent-color: "#6366f1"
+      primary-text-color: "#111827"
+      secondary-text-color: "#4b5563"
+      disabled-text-color: "#9ca3af"
+      text-primary-color: "#111827"
+      app-header-background-color: "#f8f9fb"
+      app-header-text-color: "#111827"
+      app-header-border-bottom: "none"
+      mdc-top-app-bar-fixed-box-shadow: "none"
+      sidebar-background-color: "#f8f9fb"
+      sidebar-selected-background-color: "rgba(99, 102, 241, 0.10)"
+      sidebar-icon-color: "#9ca3af"
+      sidebar-selected-icon-color: "#6366f1"
+      sidebar-text-color: "#4b5563"
+      sidebar-selected-text-color: "#111827"
+      divider-color: "transparent"
+      ha-card-background: "#ffffff"
+      ha-card-border-radius: "12px"
+      ha-card-border-width: "0"
+      ha-card-box-shadow: "0 1px 8px rgba(0,0,0,0.08)"
+
+Dashboard Dark:
+  modes:
+    dark:
+      # ── Backgrounds — match dashboard #0f0f14 / #1a1a24 ───────────────────
+      primary-background-color: "#0f0f14"
+      secondary-background-color: "#0f0f14"
+      card-background-color: "#1a1a24"
+
+      # ── Primary accent — indigo (matches dashboard --color-accent) ─────────
+      primary-color: "#6366f1"
+      accent-color: "#6366f1"
+
+      # ── Text ───────────────────────────────────────────────────────────────
+      primary-text-color: "#f1f5f9"
+      secondary-text-color: "#94a3b8"
+      disabled-text-color: "#475569"
+      text-primary-color: "#f1f5f9"
+      text-accent-color: "#6366f1"
+
+      # ── Header / top bar ───────────────────────────────────────────────────
+      app-header-background-color: "#0f0f14"
+      app-header-text-color: "#f1f5f9"
+      app-header-edit-background-color: "#1a1a24"
+      app-header-edit-text-color: "#6366f1"
+      # Remove header bottom border/shadow so it blends into the panel
+      app-header-border-bottom: "none"
+      mdc-top-app-bar-fixed-box-shadow: "none"
+
+      # ── Sidebar ────────────────────────────────────────────────────────────
+      sidebar-background-color: "#0f0f14"
+      sidebar-selected-background-color: "rgba(99, 102, 241, 0.12)"
+      sidebar-icon-color: "#475569"
+      sidebar-selected-icon-color: "#6366f1"
+      sidebar-text-color: "#94a3b8"
+      sidebar-selected-text-color: "#f1f5f9"
+
+      # ── Dividers / borders — transparent so header has no visible seam ──────
+      divider-color: "transparent"
+
+      # ── State colors ───────────────────────────────────────────────────────
+      state-icon-color: "#94a3b8"
+      state-icon-active-color: "#6366f1"
+
+      # ── Switch/toggle ──────────────────────────────────────────────────────
+      paper-toggle-button-checked-button-color: "#6366f1"
+      paper-toggle-button-checked-bar-color: "rgba(99, 102, 241, 0.5)"
+      paper-toggle-button-unchecked-button-color: "#475569"
+      paper-toggle-button-unchecked-bar-color: "rgba(71, 85, 105, 0.5)"
+
+      # ── Lovelace cards ─────────────────────────────────────────────────────
+      ha-card-background: "#1a1a24"
+      ha-card-border-radius: "12px"
+      ha-card-border-width: "0"
+      ha-card-box-shadow: "0 2px 12px rgba(0,0,0,0.4)"
+
+      # ── Input fields ───────────────────────────────────────────────────────
+      input-fill-color: "#1a1a24"
+      input-ink-color: "#f1f5f9"
+      input-label-ink-color: "#94a3b8"
+
+      # ── Energy dashboard ───────────────────────────────────────────────────
+      energy-grid-consumption-color: "#f59e0b"
+      energy-grid-return-color: "#22c55e"
+      energy-battery-in-color: "#3b82f6"
+      energy-battery-out-color: "#06b6d4"

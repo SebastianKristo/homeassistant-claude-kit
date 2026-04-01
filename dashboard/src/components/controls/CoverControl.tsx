@@ -52,7 +52,7 @@ export function CoverControl({ entityId, stripPrefix }: CoverControlProps) {
 
   if (isUnavailable) {
     return (
-      <div className="flex items-center justify-between rounded-xl bg-bg-elevated p-3 opacity-50">
+      <div className="flex items-center justify-between rounded-xl bg-bg-card p-3 opacity-50">
         <div className="flex items-center gap-2">
           <Icon icon="mdi:blinds" width={18} className="text-text-dim" />
           <span className="text-sm text-text-dim">{name}</span>
@@ -65,7 +65,7 @@ export function CoverControl({ entityId, stripPrefix }: CoverControlProps) {
   const displayPos = slider.displayValue;
 
   return (
-    <div className="overflow-hidden rounded-xl bg-bg-elevated">
+    <div className="overflow-hidden rounded-xl bg-bg-card">
       {/* Header: icon + name + position + state */}
       <div className="flex items-center justify-between px-3 pt-3 pb-1">
         <div className="flex items-center gap-2 min-w-0">

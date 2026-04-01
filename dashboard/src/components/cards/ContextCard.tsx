@@ -3,13 +3,48 @@ import { useHass } from "@hakit/core";
 import type { HassEntities } from "home-assistant-js-websocket";
 import { Icon } from "@iconify/react";
 import type { ContextConfig } from "../../lib/entities";
+import {
+  SUN_NEXT_RISING, SUN_NEXT_SETTING,
+  MOON_PHASE, MOON_ILLUMINATION,
+  LIGHTNING_ENTITY_ID, LIGHTNING_LAT, LIGHTNING_LON,
+  POLLEN_SENSORS,
+} from "../../lib/entities";
 import { toWatts, formatPower, formatDuration, parseNumericState } from "../../lib/format";
 import { weatherIcon, conditionLabel } from "../../lib/weatherIcons";
 import { useWeatherForecast, type ForecastEntry } from "../../hooks/useWeatherForecast";
 import { useAttributeTimeline } from "../../hooks/useStateHistory";
 import { useMinuteTick } from "../../hooks/useMinuteTick";
 
-export function ContextCard({ config }: { config: ContextConfig }) {
+function formatTime(isoStr: string | undefined): string {
+  if (!isoStr) return "—";
+  try {
+    return new Date(isoStr).toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "—";
+  }
+}
+
+const MOON_PHASE_ICON: Record<string, string> = {
+  "new moon": "wi:moon-alt-new",
+  "waxing crescent": "wi:moon-alt-waxing-crescent-3",
+  "first quarter": "wi:moon-alt-first-quarter",
+  "waxing gibbous": "wi:moon-alt-waxing-gibbous-3",
+  "full moon": "wi:moon-alt-full",
+  "waning gibbous": "wi:moon-alt-waning-gibbous-3",
+  "last quarter": "wi:moon-alt-last-quarter",
+  "waning crescent": "wi:moon-alt-waning-crescent-3",
+};
+
+function moonIcon(phase: string): string {
+  const lower = phase.toLowerCase().replace(/_/g, " ");
+  return MOON_PHASE_ICON[lower] ?? "wi:moon-alt-full";
+}
+
+function moonPhaseLabel(phase: string): string {
+  return phase.replace(/_/g, " ");
+}
+
+export function ContextCard({ config, compact = false, minimal = false }: { config: ContextConfig; compact?: boolean; minimal?: boolean }) {
   const entities = useHass((s) => s.entities) as HassEntities;
 
   const timeOfDay = entities[config.timeOfDay]?.state ?? "day";
@@ -58,11 +93,167 @@ export function ContextCard({ config }: { config: ContextConfig }) {
   const pressure = parseNumericState(entities[config.indoorPressure]?.state);
   const windSpeed = weatherAttrs.wind_speed as number | undefined;
   const windBearing = weatherAttrs.wind_bearing as number | undefined;
+  const windGust = weatherAttrs.wind_gust_speed as number | undefined;
+  const uvIndex = weatherAttrs.uv_index as number | undefined;
+  const visibility = weatherAttrs.visibility as number | undefined;
+  const cloudCoverage = weatherAttrs.cloud_coverage as number | undefined;
+  const apparentTemp = weatherAttrs.apparent_temperature as number | undefined;
   const forecastLow = parseNumericState(entities[config.forecastLow]?.state);
   const forecastHigh = parseNumericState(entities[config.forecastHigh]?.state);
 
   const forecast = useWeatherForecast();
   const forecastSlice = forecast.slice(0, 24);
+
+  // Sun & Moon
+  const nextRising  = entities[SUN_NEXT_RISING]?.state;
+  const nextSetting = entities[SUN_NEXT_SETTING]?.state;
+  const moonPhase   = entities[MOON_PHASE]?.state;
+  const moonIllum   = parseNumericState(entities[MOON_ILLUMINATION]?.state);
+
+  // Lightning — use last_changed on the entity id sensor to detect recent strikes
+  // lat/lon are available via LIGHTNING_LAT / LIGHTNING_LON if distance calculations needed
+  void LIGHTNING_LAT; void LIGHTNING_LON;
+  const lightningTs = entities[LIGHTNING_ENTITY_ID]?.last_changed;
+  const lightningMinAgo = lightningTs
+    ? Math.round((Date.now() - new Date(lightningTs).getTime()) / 60000)
+    : null;
+  const recentLightning = lightningMinAgo !== null && lightningMinAgo < 30;
+
+  if (compact) {
+    return (
+      <div className="contain-card rounded-2xl bg-bg-card px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: temp + condition */}
+          <div className="flex items-center gap-2.5">
+            <Icon icon={weatherIcon(weatherState, isNight)} width={36} />
+            <div>
+              <div className="text-xl font-semibold tabular-nums leading-tight">
+                {outdoorTemp !== null ? `${outdoorTemp.toFixed(1)}°` : "—"}
+              </div>
+              {(forecastHigh !== null || forecastLow !== null) && (
+                <div className="text-[11px] text-text-dim tabular-nums">
+                  {forecastHigh !== null && `${Math.round(forecastHigh)}°`}
+                  {forecastHigh !== null && forecastLow !== null && " / "}
+                  {forecastLow !== null && `${Math.round(forecastLow)}°`}
+                </div>
+              )}
+            </div>
+            <div className="text-xs text-text-secondary">{conditionLabel(weatherState)}</div>
+          </div>
+          {/* Right: wind + humidity */}
+          <div className="flex items-center gap-3 text-xs text-text-secondary">
+            {humidity !== null && (
+              <span className="flex items-center gap-1">
+                <Icon icon="meteocons:humidity" width={16} />
+                {Math.round(humidity)}%
+              </span>
+            )}
+            {windSpeed != null && (
+              <span className="flex items-center gap-1">
+                <Icon icon="meteocons:wind" width={16} />
+                {(windSpeed / 3.6).toFixed(1)} m/s
+              </span>
+            )}
+            {loadW > 0 && (
+              <span className="flex items-center gap-1 text-text-dim">
+                <Icon icon="mdi:home-lightning-bolt" width={14} />
+                {formatPower(loadW)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Minimal mode — like compact but taller with more weather detail + sun/moon row
+  if (minimal) {
+    return (
+      <div className="contain-card rounded-2xl bg-bg-card px-4 py-4">
+        {/* Main row: icon + temp + stats */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Icon icon={weatherIcon(weatherState, isNight)} width={48} />
+            <div>
+              <div className="text-3xl font-light tabular-nums leading-none">
+                {outdoorTemp !== null ? `${outdoorTemp.toFixed(1)}°` : "—"}
+              </div>
+              <div className="text-xs text-text-secondary mt-0.5">{conditionLabel(weatherState)}</div>
+              {(forecastHigh !== null || forecastLow !== null) && (
+                <div className="text-[11px] text-text-dim tabular-nums">
+                  {forecastHigh !== null && `${Math.round(forecastHigh)}°`}
+                  {forecastHigh !== null && forecastLow !== null && " / "}
+                  {forecastLow !== null && `${Math.round(forecastLow)}°`}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1 text-xs text-text-secondary">
+            {humidity !== null && (
+              <span className="flex items-center gap-1">
+                <Icon icon="meteocons:humidity" width={14} />
+                {Math.round(humidity)}%
+              </span>
+            )}
+            {windSpeed != null && (
+              <span className="flex items-center gap-1">
+                <Icon icon="meteocons:wind" width={14} />
+                {(windSpeed / 3.6).toFixed(1)} m/s
+                {windBearing != null && (
+                  <Icon icon="mdi:navigation" width={11} className="text-text-dim" style={{ transform: `rotate(${windBearing}deg)` }} />
+                )}
+              </span>
+            )}
+            {apparentTemp != null && (
+              <span className="flex items-center gap-1 text-text-dim">
+                <Icon icon="mdi:thermometer-lines" width={13} />
+                Føles {Math.round(apparentTemp)}°
+              </span>
+            )}
+            {loadW > 0 && (
+              <span className="flex items-center gap-1 text-text-dim">
+                <Icon icon="mdi:home-lightning-bolt" width={13} />
+                {formatPower(loadW)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Sun/moon row */}
+        <div className="mt-3 flex items-center justify-between text-xs text-text-dim">
+          <div className="flex items-center gap-3">
+            {nextRising && (
+              <span className="flex items-center gap-1">
+                <Icon icon="mdi:weather-sunset-up" width={14} className="text-accent-warm" />
+                {formatTime(nextRising)}
+              </span>
+            )}
+            {nextSetting && (
+              <span className="flex items-center gap-1">
+                <Icon icon="mdi:weather-sunset-down" width={14} className="text-accent-warm/70" />
+                {formatTime(nextSetting)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {recentLightning && (
+              <span className="flex items-center gap-1 text-accent-warm animate-pulse">
+                <Icon icon="mdi:lightning-bolt" width={13} />
+                Lyn
+              </span>
+            )}
+            {moonPhase && (
+              <span className="flex items-center gap-1">
+                <Icon icon={moonIcon(moonPhase)} width={13} />
+                {moonPhaseLabel(moonPhase)}
+                {moonIllum !== null && <span className="text-text-dim/60">· {Math.round(moonIllum)}%</span>}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="contain-card rounded-2xl bg-bg-card p-5">
@@ -148,33 +339,68 @@ export function ContextCard({ config }: { config: ContextConfig }) {
         </div>
       </div>
 
-      {/* Weather stats row */}
-      <div className="mt-2 flex items-center justify-end gap-4 text-xs text-text-secondary">
-        {humidity !== null && (
-          <span className="flex items-center gap-1">
-            <Icon icon="meteocons:humidity" width={18} />
-            {Math.round(humidity)}%
-          </span>
-        )}
-        {windSpeed != null && (
-          <span className="flex items-center gap-1">
-            <Icon icon="meteocons:wind" width={18} />
-            {Math.round(windSpeed)} km/h
-            {windBearing != null && (
-              <Icon
-                icon="mdi:navigation"
-                width={12}
-                className="text-text-dim"
-                style={{ transform: `rotate(${windBearing}deg)` }}
-              />
+      {/* Weather stats rows */}
+      <div className="mt-2 space-y-1.5">
+        {/* Primary row: temp feel, humidity, wind */}
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-text-secondary">
+          {apparentTemp != null && (
+            <span className="flex items-center gap-1">
+              <Icon icon="mdi:thermometer-lines" width={14} className="text-text-dim" />
+              Føles {Math.round(apparentTemp)}°
+            </span>
+          )}
+          {humidity !== null && (
+            <span className="flex items-center gap-1">
+              <Icon icon="meteocons:humidity" width={18} />
+              {Math.round(humidity)}%
+            </span>
+          )}
+          {windSpeed != null && (
+            <span className="flex items-center gap-1">
+              <Icon icon="meteocons:wind" width={18} />
+              {(windSpeed / 3.6).toFixed(1)}
+              {windGust != null && windGust > windSpeed + 2 && (
+                <span className="text-text-dim"> ({(windGust / 3.6).toFixed(1)})</span>
+              )} m/s
+              {windBearing != null && (
+                <Icon
+                  icon="mdi:navigation"
+                  width={12}
+                  className="text-text-dim"
+                  style={{ transform: `rotate(${windBearing}deg)` }}
+                />
+              )}
+            </span>
+          )}
+        </div>
+        {/* Secondary row: pressure, UV, visibility, cloud */}
+        {(pressure !== null || uvIndex != null || visibility != null || cloudCoverage != null) && (
+          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-text-dim">
+            {pressure !== null && (
+              <span className="flex items-center gap-1">
+                <Icon icon="meteocons:barometer" width={16} />
+                {Math.round(pressure)} hPa
+              </span>
             )}
-          </span>
-        )}
-        {pressure !== null && (
-          <span className="flex items-center gap-1">
-            <Icon icon="meteocons:barometer" width={18} />
-            {Math.round(pressure)} hPa
-          </span>
+            {uvIndex != null && uvIndex > 0 && (
+              <span className="flex items-center gap-1">
+                <Icon icon="mdi:sun-wireless" width={14} />
+                UV {uvIndex.toFixed(0)}
+              </span>
+            )}
+            {visibility != null && (
+              <span className="flex items-center gap-1">
+                <Icon icon="mdi:eye-outline" width={14} />
+                {visibility >= 10 ? `${visibility.toFixed(0)} km` : `${visibility.toFixed(1)} km`}
+              </span>
+            )}
+            {cloudCoverage != null && (
+              <span className="flex items-center gap-1">
+                <Icon icon="mdi:cloud-outline" width={14} />
+                {Math.round(cloudCoverage)}%
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -182,6 +408,94 @@ export function ContextCard({ config }: { config: ContextConfig }) {
       {forecastSlice.length > 0 && (
         <HourlyForecast entries={forecastSlice} />
       )}
+
+      {/* Sun, Moon & Lightning row */}
+      {(nextRising || nextSetting || moonPhase || recentLightning) && (
+        <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-3">
+          {/* Sol */}
+          {(nextRising || nextSetting) && (
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-text-dim">Sol</div>
+              {nextRising && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Icon icon="mdi:weather-sunset-up" width={14} className="text-accent-warm" />
+                  <span className="text-text-secondary">Soloppgang</span>
+                  <span className="tabular-nums font-medium ml-auto">{formatTime(nextRising)}</span>
+                </div>
+              )}
+              {nextSetting && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Icon icon="mdi:weather-sunset-down" width={14} className="text-accent-warm/70" />
+                  <span className="text-text-secondary">Solnedgang</span>
+                  <span className="tabular-nums font-medium ml-auto">{formatTime(nextSetting)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Måne */}
+          {moonPhase && (
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-text-dim">Måne</div>
+              <div className="flex items-center gap-1.5 text-xs">
+                <Icon icon={moonIcon(moonPhase)} width={14} className="text-text-secondary" />
+                <span className="text-text-secondary capitalize">{moonPhaseLabel(moonPhase)}</span>
+                {moonIllum !== null && (
+                  <span className="tabular-nums font-medium ml-auto">{Math.round(moonIllum)}%</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Lyn */}
+          {recentLightning && (
+            <div className="col-span-2 space-y-1">
+              <div className="flex items-center gap-1.5 rounded-xl bg-accent-warm/10 border border-accent-warm/20 px-3 py-2">
+                <Icon icon="mdi:lightning-bolt" width={16} className="text-accent-warm" />
+                <span className="text-xs font-medium text-accent-warm">Lyn registrert</span>
+                {lightningMinAgo !== null && (
+                  <span className="text-xs text-text-dim ml-1">for {lightningMinAgo} min siden</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Pollen */}
+      <PollenSection entities={entities} />
+    </div>
+  );
+}
+
+const POLLEN_LEVEL: Record<string, { label: string; color: string }> = {
+  "Svært lav": { label: "Svært lav", color: "text-accent-green" },
+  "Lav":       { label: "Lav",       color: "text-accent-green" },
+  "Moderat":   { label: "Moderat",   color: "text-accent-warm" },
+  "Høy":       { label: "Høy",       color: "text-accent-red" },
+  "Svært høy": { label: "Svært høy", color: "text-accent-red" },
+};
+
+function PollenSection({ entities }: { entities: HassEntities }) {
+  const active = POLLEN_SENSORS.filter(
+    (p) => entities[p.entity]?.state && entities[p.entity]?.state !== "No Data" && entities[p.entity]?.state !== "unavailable",
+  );
+  if (active.length === 0) return null;
+  return (
+    <div className="mt-3 pt-3 border-t border-white/5">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-text-dim mb-2">Pollen</div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {active.map((p) => {
+          const state = entities[p.entity]?.state ?? "";
+          const meta  = POLLEN_LEVEL[state] ?? { label: state, color: "text-text-dim" };
+          return (
+            <div key={p.entity} className="flex items-center gap-1.5 text-xs">
+              <span className="text-text-secondary">{p.label}</span>
+              <span className={`font-medium text-[11px] ${meta.color}`}>{meta.label}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

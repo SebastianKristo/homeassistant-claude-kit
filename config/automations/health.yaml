@@ -1,0 +1,165 @@
+###############################################################################
+# Health Monitoring Automations — Toten hytte
+###############################################################################
+
+# ── Battery Alert ─────────────────────────────────────────────────────────────
+
+- id: 'health_battery_alert'
+  alias: Health - Batteri lavt
+  description: Varsel når enheter får lavt batteri
+  triggers:
+  - trigger: numeric_state
+    entity_id:
+    - sensor.dorlas_battery
+    - sensor.myggbett_door_window_sensor_battery
+    - sensor.sebastian_klimasensor_battery
+    - sensor.cybele_klimasensor_battery
+    - sensor.rune_klimasensor_luftfuktighet
+    - sensor.stue_dorsensor_battery_plus
+    below: 20
+    for:
+      hours: 1
+  conditions: []
+  actions:
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: Lavt batteri
+      message: "{{ trigger.to_state.name }}: {{ trigger.to_state.state }}%"
+      data:
+        push:
+          interruption-level: passive
+  mode: parallel
+  max: 10
+
+
+# ── Disk / Memory Alert ───────────────────────────────────────────────────────
+
+- id: 'health_disk_memory_alert'
+  alias: Health - Disk og minne alert
+  description: Varsel når HA systemet bruker for mye disk eller minne
+  triggers:
+  - trigger: numeric_state
+    entity_id: sensor.home_assistant_host_disk_used
+    above: 90
+    for:
+      minutes: 5
+    id: disk_high
+  - trigger: numeric_state
+    entity_id: sensor.home_assistant_core_memory_percent
+    above: 90
+    for:
+      minutes: 5
+    id: memory_high
+  conditions: []
+  actions:
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: System ressursvarsel
+      message: >
+        {% if trigger.id == 'disk_high' %}
+          Diskbruk: {{ states('sensor.home_assistant_host_disk_used') }} GB
+        {% else %}
+          Minnebruk: {{ states('sensor.home_assistant_core_memory_percent') }}%
+        {% endif %}
+      data:
+        push:
+          interruption-level: time-sensitive
+  mode: parallel
+  max: 2
+
+
+# ── HA Restart Notification ───────────────────────────────────────────────────
+
+- id: 'health_ha_restart_notification'
+  alias: Health - HA restartet
+  description: Varsel når Home Assistant starter på nytt
+  triggers:
+  - trigger: homeassistant
+    event: start
+  conditions: []
+  actions:
+  - delay:
+      minutes: 2
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: Home Assistant
+      message: "HA restartet OK."
+      data:
+        push:
+          interruption-level: passive
+  mode: single
+
+
+# ── Integration Monitor ───────────────────────────────────────────────────────
+
+- id: 'health_integration_monitor'
+  alias: Health - Integrasjonsovervåking
+  description: Varsel hvis nøkkelenheter er utilgjengelige i 10 min
+  triggers:
+  - trigger: state
+    entity_id:
+    - sensor.tibber_pulse_toten_kolbulinna_239_power
+    - sensor.vaervarsel_temperatur
+    - climate.bad_toten_gulvvarme
+    - lock.dorlas
+    to:
+    for:
+      minutes: 10
+    id: state_change
+  - trigger: homeassistant
+    event: start
+    id: startup
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: startup
+      sequence:
+      - delay:
+          minutes: 5
+      - variables:
+          bad_entities: >
+            {% set ns = namespace(bad=[]) %}
+            {% set monitored = [
+              'sensor.tibber_pulse_toten_kolbulinna_239_power',
+              'sensor.vaervarsel_temperatur',
+              'climate.bad_toten_gulvvarme',
+              'lock.dorlas',
+            ] %}
+            {% for e in monitored %}
+              {% if states(e) in ['unavailable', 'unknown'] %}
+                {% set ns.bad = ns.bad + [state_attr(e, 'friendly_name') ~ ' (' ~ states(e) ~ ')'] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.bad | join(', ') }}
+      - condition: template
+        value_template: "{{ bad_entities | length > 0 }}"
+      - action: notify.mobile_app_sebastian_iphone_17_pro
+        data:
+          title: Integrasjoner nede etter omstart
+          message: "{{ bad_entities }}"
+          data:
+            push:
+              interruption-level: time-sensitive
+    default:
+    - condition: template
+      value_template: "{{ trigger.to_state.state in ['unavailable', 'unknown'] }}"
+    - action: homeassistant.reload_config_entry
+      data:
+        entry_id: '{{ config_entry_id(trigger.entity_id) }}'
+    - delay:
+        seconds: 30
+    - if:
+      - condition: template
+        value_template: "{{ states(trigger.entity_id) in ['unavailable', 'unknown'] }}"
+      then:
+      - action: notify.mobile_app_sebastian_iphone_17_pro
+        data:
+          title: Integrasjon nede
+          message: "{{ trigger.to_state.name }} ({{ trigger.entity_id }}) er {{ trigger.to_state.state }}."
+          data:
+            push:
+              interruption-level: "{{ 'passive' if is_state('input_boolean.night_mode', 'on') else 'time-sensitive' }}"
+  mode: parallel
+  max: 5

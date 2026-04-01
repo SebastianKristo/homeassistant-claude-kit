@@ -1,0 +1,398 @@
+komfort_temp:
+  name: Komforttemperatur
+  min: 16
+  max: 26
+  step: 0.5
+  unit_of_measurement: "°C"
+  icon: mdi:thermometer
+  mode: box
+  initial: 22
+
+borte_temp:
+  name: Borte-temperatur
+  min: 10
+  max: 20
+  step: 0.5
+  unit_of_measurement: "°C"
+  icon: mdi:thermometer-low
+  mode: box
+  initial: 16
+
+sommer_temp:
+  name: Sommer-grunntemperatur
+  min: 10
+  max: 20
+  step: 0.5
+  unit_of_measurement: "°C"
+  icon: mdi:weather-sunny
+  mode: box
+  initial: 16
+
+antall_billig_timer_natt_backup:
+  name: Antall billig-timer natt (backup)
+  min: 0
+  max: 100
+  step: 1
+
+vvb_billigste_timer_dogn:
+  name: VVB billigste timer i døgnet
+  min: 0
+  max: 100
+  step: 1
+
+el_company_surcharge:
+  name: El Company Surcharge
+  min: 0
+  max: 200
+  step: 0.1
+  unit_of_measurement: "øre/kWh"
+  icon: mdi:home-lightning-bolt-outline
+  mode: box
+
+electricity_government_support_percentage:
+  name: Electricity Government Support Percentage
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: "%"
+  icon: mdi:percent
+  mode: slider
+
+electricity_government_support_threshold:
+  name: Electricity Government Support Threshold
+  min: 0
+  max: 200
+  step: 0.1
+  unit_of_measurement: "øre/kWh"
+  icon: mdi:chart-line
+  mode: box
+
+grid_day_hourly_cost:
+  name: Grid Day Hourly Cost
+  min: 0
+  max: 200
+  step: 0.1
+  unit_of_measurement: "øre/kWh"
+  icon: mdi:home-lightning-bolt-outline
+  mode: box
+
+grid_night_hourly_cost:
+  name: Grid Night Hourly Cost
+  min: 0
+  max: 200
+  step: 0.1
+  unit_of_measurement: "øre/kWh"
+  icon: mdi:home-lightning-bolt-outline
+  mode: box
+
+vat_percent:
+  name: Vat Percent
+  min: 0
+  max: 100
+  step: 1
+  unit_of_measurement: "%"
+  icon: mdi:percent
+  mode: slider
+
+las_automatisk_lasing_etter:
+  name: Lås Automatisk Låsing Etter
+  min: 0
+  max: 30
+  step: 1
+  unit_of_measurement: "min"
+  mode: slider
+
+soverom_morgengry_minutter:
+  name: Soverom Morgengry Minutter
+  min: 0
+  max: 60
+  step: 1
+  unit_of_measurement: "min"
+  mode: slider
+
+#########
+# Klima #
+#########
+
+bad_gulvvarme_teller:
+  name: Bad Gulvvarme Teller
+  min: 0
+  max: 40
+  step: 1
+
+cybele_panelovn_teller:
+  name: Cybele Panelovn Teller
+  min: 0
+  max: 40
+  step: 1
+
+do_gulvvarme_teller:
+  name: Do Gulvvarme Teller
+  min: 0
+  max: 40
+  step: 1
+
+kjokken_gulvvarme_teller:
+  name: Kjøkken Gulvvarme Teller
+  min: 0
+  max: 40
+  step: 1
+
+kjokken_panelovn_teller:
+  name: Kjøkken Panelovn Teller
+  min: 0
+  max: 40
+  step: 1
+
+sebastian_panelovn_teller:
+  name: Sebastian Panelovn Teller
+  min: 0
+  max: 40
+  step: 1
+
+stue_oljefyr_teller:
+  name: Stue Oljefyr Teller
+  min: 0
+  max: 40
+  step: 1
+
+stue_panelovn_teller:
+  name: Stue Panelovn Teller
+  min: 0
+  max: 40
+  step: 1
+
+trappegang_panelovn_teller:
+  name: Trappegang Panelovn Teller
+  min: 0
+  max: 40
+  step: 1
+
+vaskegang_gulvvarme_teller:
+  name: Vaskegang Gulvvarme Teller
+  min: 0
+  max: 40
+  step: 1
+
+####################
+# MySmartHome Task #
+####################
+
+tasks_priority:
+  name: Task Priority
+  min: 0
+  max: 100
+  step: 1
+  mode: slider
+
+####################
+# Strøm fastledd   #
+####################
+
+effekt_topp_1:
+  name: "Effekttopp 1"
+  min: 0
+  max: 50
+  step: 0.01
+  unit_of_measurement: "kW"
+  icon: mdi:flash
+effekt_topp_2:
+  name: "Effekttopp 2"
+  min: 0
+  max: 50
+  step: 0.01
+  unit_of_measurement: "kW"
+  icon: mdi:flash
+effekt_topp_3:
+  name: "Effekttopp 3"
+  min: 0
+  max: 50
+  step: 0.01
+  unit_of_measurement: "kW"
+  icon: mdi:flash
+
+fastledd_januar:
+  name: "Fastledd Januar"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_februar:
+  name: "Fastledd Februar"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_mars:
+  name: "Fastledd Mars"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_april:
+  name: "Fastledd April"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_mai:
+  name: "Fastledd Mai"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_juni:
+  name: "Fastledd Juni"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_juli:
+  name: "Fastledd Juli"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_august:
+  name: "Fastledd August"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_september:
+  name: "Fastledd September"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_oktober:
+  name: "Fastledd Oktober"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_november:
+  name: "Fastledd November"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: "kr"
+fastledd_desember:
+  name: "Fastledd Desember"
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement:
+    "kr"
+
+
+tesla_model_y_ladegrense:
+  name: "Tesla Model Y Ladegrense"
+  min: 0
+  max: 100
+  unit_of_measurement: "%"
+  mode: box
+
+smart_lading_maks_pris:
+  name: "Smart lading — maks pris"
+  icon: mdi:ev-station
+  min: 0.20
+  max: 3.00
+  step: 0.05
+  unit_of_measurement: "kr/kWh"
+  mode: box
+
+###########
+# Vanning #
+###########
+
+vanning_kjokken_varighet:
+  name: Kjøkken Varighet
+  min: 1
+  max: 60
+  step: 1
+  unit_of_measurement: min
+  icon: mdi:timer
+
+vanning_veranda_bed_varighet:
+  name: Veranda Bed Varighet
+  min: 1
+  max: 60
+  step: 1
+  unit_of_measurement: min
+  icon: mdi:timer
+
+vanning_veranda_blomster_varighet:
+  name: Veranda Blomster Varighet
+  min: 1
+  max: 60
+  step: 1
+  unit_of_measurement: min
+  icon: mdi:timer
+
+vanning_regn_terskel:
+  name: Regnskjerm Terskel
+  min: 0.5
+  max: 20
+  step: 0.5
+  unit_of_measurement: mm
+  icon: mdi:weather-rainy
+  mode: slider
+
+#########################################
+#  VANNFORBRUK KATEGORISERING           #
+#########################################
+
+vann_session_start:
+  name: Vann sesjon startvolum
+  min: 0
+  max: 9999999
+  step: 1
+  unit_of_measurement: L
+  icon: mdi:water
+  mode: box
+
+vann_dusj_daglig:
+  name: Vann dusj daglig
+  min: 0
+  max: 2000
+  step: 1
+  unit_of_measurement: L
+  icon: mdi:shower-head
+  mode: box
+
+vann_toalett_daglig:
+  name: Vann toalett daglig
+  min: 0
+  max: 2000
+  step: 1
+  unit_of_measurement: L
+  icon: mdi:toilet
+  mode: box
+
+vann_handvask_daglig:
+  name: Vann håndvask daglig
+  min: 0
+  max: 500
+  step: 1
+  unit_of_measurement: L
+  icon: mdi:hand-water
+  mode: box
+
+vann_oppvask_daglig:
+  name: Vann oppvask daglig
+  min: 0
+  max: 1000
+  step: 1
+  unit_of_measurement: L
+  icon: mdi:dishwasher
+  mode: box
+
+vann_badekar_daglig:
+  name: Vann badekar daglig
+  min: 0
+  max: 500
+  step: 1
+  unit_of_measurement: L
+  icon: mdi:bathtub-outline
+  mode: box

@@ -27,6 +27,8 @@ export function CameraCard({ camera, snapshotVersion = 0, onTap }: CameraCardPro
 
   const imageEntity = entities[camera.eventImage];
   const eventImageUrl = buildImageUrl(imageEntity);
+  // Fall back to the camera entity's own entity_picture (HA camera proxy)
+  const cameraEntityPicUrl = buildImageUrl(entities[camera.entity]);
 
   // Fetch snapshot file's Last-Modified via HEAD request
   useEffect(() => {
@@ -62,7 +64,7 @@ export function CameraCard({ camera, snapshotVersion = 0, onTap }: CameraCardPro
     ? snapshotUrl
     : !eventImgFailed && eventImageUrl
       ? eventImageUrl
-      : null;
+      : cameraEntityPicUrl;  // HA camera proxy as final fallback
 
   const batteryColor =
     battery === null

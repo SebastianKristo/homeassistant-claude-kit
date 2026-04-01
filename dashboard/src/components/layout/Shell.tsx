@@ -6,6 +6,8 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { MiniPlayer } from "./MiniPlayer";
+import { DoorbellBanner } from "./DoorbellBanner";
 import { HEADER_CONFIG } from "../../lib/entities";
 
 interface ShellProps {
@@ -23,7 +25,7 @@ export function Shell({ views }: ShellProps) {
   const visibleItems = useNavVisibility();
 
   return (
-    <div className="flex h-dvh bg-bg-primary">
+    <div className="flex h-dvh bg-bg-primary pt-[env(safe-area-inset-top)]">
       {/* Desktop sidebar */}
       <Sidebar
         items={visibleItems}
@@ -33,7 +35,7 @@ export function Shell({ views }: ShellProps) {
 
       {/* Main content area — min-w-0 lets this flex child shrink below content width */}
       <div className="flex min-w-0 flex-1 flex-col md:ml-[72px]">
-        <main className="relative min-w-0 flex-1 overflow-y-auto pb-20 md:pb-4">
+        <main className="relative min-w-0 flex-1 overflow-y-auto pb-24 md:pb-4">
           <Header config={HEADER_CONFIG} />
           <AnimatePresence mode="wait">
             <motion.div
@@ -52,6 +54,12 @@ export function Shell({ views }: ShellProps) {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Doorbell notification banner */}
+      <DoorbellBanner />
+
+      {/* Floating mini player — above bottom nav */}
+      <MiniPlayer />
 
       {/* Mobile bottom nav */}
       <BottomNav

@@ -92,11 +92,12 @@ const ACTIONS: ActionDef[] = [
 
 interface VacuumCardProps {
   config: VacuumConfig;
+  onOpen?: () => void;
 }
 
 /* ── Main component ──────────────────────────────────────────── */
 
-export function VacuumCard({ config }: VacuumCardProps) {
+export function VacuumCard({ config, onOpen }: VacuumCardProps) {
   const entities = useHass((s) => s.entities) as HassEntities;
   const connection = useHass((s) => s.connection);
 
@@ -151,16 +152,26 @@ export function VacuumCard({ config }: VacuumCardProps) {
             {entities[config.vacuum]?.attributes?.friendly_name ?? "Vacuum"}
           </span>
         </div>
-        <span className={`flex items-center gap-1.5 text-xs font-medium ${meta.color}`}>
-          <Icon icon={meta.icon} width={14} />
-          {meta.label}
-          {isActive && (
-            <span className="relative ml-0.5 flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-            </span>
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-1.5 text-xs font-medium ${meta.color}`}>
+            <Icon icon={meta.icon} width={14} />
+            {meta.label}
+            {isActive && (
+              <span className="relative ml-0.5 flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+              </span>
+            )}
+          </span>
+          {onOpen && (
+            <button
+              onClick={onOpen}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/8 text-text-dim hover:bg-white/12 transition-colors"
+            >
+              <Icon icon="mdi:arrow-expand" width={13} />
+            </button>
           )}
-        </span>
+        </div>
       </div>
 
       {/* Battery bar + power */}

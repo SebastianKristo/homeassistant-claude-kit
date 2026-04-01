@@ -1,0 +1,49 @@
+night_mode:
+  name: Nattmodus
+  icon: mdi:weather-night
+
+away_mode:
+  name: Borte-modus
+  icon: mdi:home-export-outline
+
+ankommer_i_morgen:
+  name: Ankommer i morgen
+  icon: mdi:home-clock
+
+sommer_modus:
+  name: Sommer-modus
+  icon: mdi:weather-sunny
+
+include_grid:
+  name: Include Grid
+  icon: mdi:currency-usd
+
+include_vat:
+  name: Include VAT
+  icon: mdi:cash-multiple
+
+include_el_company:
+  name: Include El Company
+  icon: mdi:home-lightning-bolt-outline
+
+include_government_support:
+  name: Include Government Support
+  icon: mdi:home-lightning-bolt-outline
+
+vat_percent:
+  name: Vat Percent
+  icon: mdi:percent
+
+stromstotte:
+  name: Strømstøtte
+  icon: mdi:hand-heart
+
+kiosk_mode:
+  name: Kiosk Mode
+
+#########
+# Homey #
+#########
+
+trigger_mqtt:
+  name: Trigger Mqtt

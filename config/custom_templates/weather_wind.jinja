@@ -1,0 +1,23 @@
+{% macro get_wind_description(speed) %}
+{% set descriptions = [
+  (0, 0.99, 'Stille'),
+  (1, 6.99, 'Lett luft'),
+  (7, 11.99, 'Svak bris'),
+  (12, 19.99, 'Svak vind'),
+  (20, 29.99, 'Moderat bris'),
+  (30, 39.99, 'Frisk bris'),
+  (40, 50.99, 'Sterk bris'),
+  (51, 62.99, 'Nesten kuling'),
+  (63, 75.99, 'Kuling'),
+  (76, 87.99, 'Sterk kuling'),
+  (88, 102.99, 'Storm'),
+  (103, 117.99, 'Voldsom storm')
+] %}
+{% for low, high, desc in descriptions %}
+  {% if speed > low and speed <= high %}
+    {{ desc }}
+    {% break %}
+  {% endif %}
+{% endfor %}
+{% if speed > 117.99 %}Orkan{% endif %}
+{% endmacro %}

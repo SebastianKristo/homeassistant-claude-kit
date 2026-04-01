@@ -1,0 +1,25 @@
+tasks_icon:
+  name: Task Icon
+  min: 0
+  max: 100
+
+tasks_title:
+  name: Task Title
+  min: 0
+  max:
+    100
+
+    #########################################
+    #                                       #
+    #         Norgespris Klimastyring       #
+    #                                       #
+    #########################################
+
+#########
+# Vær   #
+#########
+
+varsel_vaer_tekst:
+  name: Varsel Vær Tekst
+  min: 0
+  max: 100

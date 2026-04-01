@@ -63,7 +63,7 @@ push: check-env
 	@echo "$(GREEN)Validating configuration before push...$(NC)"
 	@$(MAKE) validate
 	@echo "$(GREEN)Validation passed! Pushing to Home Assistant...$(NC)"
-	@rsync -avz --delete --exclude-from=.rsync-excludes-push "$(LOCAL_CONFIG_PATH)" "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)"
+	@rsync -avz --delete --exclude-from=.rsync-excludes-push --rsync-path="sudo rsync" "$(LOCAL_CONFIG_PATH)" "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)"
 	@echo "$(GREEN)Configuration pushed successfully!$(NC)"
 	@echo "$(GREEN)Reloading Home Assistant configuration...$(NC)"
 	@. $(VENV_PATH)/bin/activate && python $(TOOLS_PATH)/reload_config.py
@@ -220,8 +220,8 @@ deploy-dashboard: check-env
 	@echo "$(GREEN)Building dashboard...$(NC)"
 	@cd dashboard && npm run build
 	@echo "$(GREEN)Deploying to Home Assistant...$(NC)"
-	@rsync -avz --delete dashboard/dist/ "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)www/custom-dashboard/"
-	@rsync -avz dashboard/panel.js "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)www/custom-dashboard/panel.js"
+	@rsync -avz --delete --rsync-path="sudo rsync" dashboard/dist/ "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)www/custom-dashboard/"
+	@rsync -avz --rsync-path="sudo rsync" dashboard/panel.js "$(SSH_USER)@$(HA_HOST):$(HA_REMOTE_PATH)www/custom-dashboard/panel.js"
 	@echo "$(GREEN)Dashboard deployed! Hard-refresh browser to load new version.$(NC)"
 
 # Privacy mode targets

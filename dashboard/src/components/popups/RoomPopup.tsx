@@ -1,22 +1,21 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { useHass } from "@hakit/core";
 import type { HassEntities } from "home-assistant-js-websocket";
+import { callService } from "home-assistant-js-websocket";
 import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
-import type { RoomConfig } from "../../lib/areas";
-import {
-  CLIMATE_MODE,
-  NEXT_CLIMATE_TRANSITION,
-} from "../../lib/entities";
+import { AnimatePresence, motion } from "framer-motion";
+import { Icon } from "@iconify/react";
+import type { RoomConfig, SceneButton } from "../../lib/areas";
+import { CLIMATE_MODE, NEXT_CLIMATE_TRANSITION } from "../../lib/entities";
 import { AC_UNITS } from "../../lib/acUnits";
 import { useRoomState } from "../../hooks/useRoomState";
 import { LightControl } from "../controls/LightControl";
 import { CoverControl } from "../controls/CoverControl";
-import { ClimateCluster, SensorBar } from "./HeaderStats";
-import { BottomActionBar } from "./BottomActionBar";
+import { SwitchControl } from "../controls/SwitchControl";
 import { ClimateSection } from "./ClimateSection";
 import { MediaSection } from "./MediaSection";
-import { Section } from "./RoomPopupShared";
 import { BottomSheet } from "./BottomSheet";
+import { RoomHeroCard } from "./RoomHeroCard";
 
 interface RoomPopupProps {
   room: RoomConfig | null;
@@ -32,76 +31,200 @@ export function RoomPopup({ room, open, onClose }: RoomPopupProps) {
   );
 }
 
+// ── CollapseSection ──────────────────────────────────────────────────────────
+
+interface CollapseSectionProps {
+  icon: string;
+  title: string;
+  badge?: string;
+  defaultExpanded?: boolean;
+  children: React.ReactNode;
+}
+
+function CollapseSection({ icon, title, badge, defaultExpanded = true, children }: CollapseSectionProps) {
+  const [open, setOpen] = useState(defaultExpanded);
+  return (
+    <div className="overflow-hidden rounded-2xl bg-bg-card">
+      <button
+        className="flex w-full items-center gap-3 px-4 py-3 text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <Icon icon={icon} width={20} className="shrink-0 text-text-secondary" />
+        <span className="flex-1 text-[15px] font-medium">{title}</span>
+        {badge && <span className="text-sm text-text-dim tabular-nums">{badge}</span>}
+        <Icon
+          icon="mdi:chevron-down"
+          width={18}
+          className={`shrink-0 text-text-dim transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="content"
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── SceneButtonsSection ──────────────────────────────────────────────────────
+
+function SceneButtonsSection({ buttons }: { buttons: SceneButton[] }) {
+  const connection = useHass((s) => s.connection);
+
+  function fire(btn: SceneButton) {
+    if (!connection) return;
+    const dot = btn.service.indexOf(".");
+    const domain = btn.service.slice(0, dot);
+    const action = btn.service.slice(dot + 1);
+    const target = btn.targetEntityId ? { entity_id: btn.targetEntityId } : undefined;
+    callService(connection, domain, action, btn.data as Record<string, unknown> | undefined, target);
+  }
+
+  return (
+    <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
+      {buttons.map((btn) => (
+        <button
+          key={btn.label}
+          onClick={() => fire(btn)}
+          className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl bg-bg-card px-3 py-3 text-center transition-colors active:bg-bg-elevated hover:bg-bg-elevated"
+          style={{ width: 76, height: 76 }}
+        >
+          <Icon icon={btn.icon} width={26} className="text-text-secondary" />
+          <span className="text-[11px] leading-tight text-text-dim">{btn.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── RoomContent ───────────────────────────────────────────────────────────────
+
 function RoomContent({ room }: { room: RoomConfig }) {
   const entities = useHass((s) => s.entities) as HassEntities;
   const state = useRoomState(room, entities);
+  const [lightsExpanded, setLightsExpanded] = useState(false);
 
-  const hasClimate = (room.climate?.length ?? 0) > 0;
-  const hasMedia = (room.mediaPlayers?.length ?? 0) > 0;
+  const hasCovers   = (room.covers?.length ?? 0) > 0;
+  const hasScenes   = (room.sceneButtons?.length ?? 0) > 0;
+  const hasLights   = room.lights.length > 0;
+  const hasSwitches = (room.switches?.length ?? 0) > 0;
+  const hasClimate  = (room.climate?.length ?? 0) > 0;
+  const hasMedia    = (room.mediaPlayers?.length ?? 0) > 0;
 
-  // Section refs for scroll-to
-  const coversRef = useRef<HTMLDivElement>(null);
-  const climateRef = useRef<HTMLDivElement>(null);
-  const mediaRef = useRef<HTMLDivElement>(null);
+  // Badge values
+  const lightsBadge = state.totalLights > 0
+    ? (state.lightsOn > 0 ? `${state.lightsOn} på` : "Av")
+    : undefined;
 
-  const scrollTo = (section: "covers" | "climate" | "media") => {
-    const ref = { covers: coversRef, climate: climateRef, media: mediaRef }[section];
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const switchWatts = hasSwitches
+    ? room.switches!.reduce((sum, id) => {
+        const powerId = room.switchPowerSensors?.[id];
+        const raw = powerId ? parseFloat(entities[powerId]?.state ?? "0") : 0;
+        return sum + (isNaN(raw) ? 0 : raw);
+      }, 0)
+    : 0;
+  const switchesBadge = switchWatts > 1 ? `${Math.round(switchWatts)} W` : undefined;
 
   return (
     <>
-      {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto px-5">
-        <div className="space-y-5 pb-5">
-          {/* Compact header — sticky */}
-          <div className="sticky top-0 z-10 -mx-5 bg-bg-card px-5 pb-3 pt-4">
-            <div className="space-y-1.5 pb-3 border-b border-white/8">
-              {/* Row 1: Title + occupancy dot | Climate cluster */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <DialogTitle className="text-lg font-semibold truncate">{room.name}</DialogTitle>
-                  <DialogDescription className="sr-only">
-                    Controls and sensors for {room.name}
-                  </DialogDescription>
-                  {state.isOccupied && (
-                    <span className="h-1.5 w-1.5 shrink-0 animate-occupancy rounded-full bg-accent-green" />
-                  )}
-                </div>
-                <ClimateCluster state={state} />
+      {/* Accessibility title — visually hidden */}
+      <DialogTitle className="sr-only">{room.name}</DialogTitle>
+      <DialogDescription className="sr-only">Controls and sensors for {room.name}</DialogDescription>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-4">
+        <div className="space-y-3 pb-5 pt-4">
+
+          {/* Hero summary card */}
+          <RoomHeroCard room={room} state={state} />
+
+          {/* Covers */}
+          {hasCovers && (
+            <CollapseSection icon="mdi:blinds" title="Markise" defaultExpanded>
+              <div className="space-y-2">
+                {room.covers!.map((id) => (
+                  <CoverControl key={id} entityId={id} stripPrefix={room.name} />
+                ))}
               </div>
-              {/* Row 2: Other sensors */}
-              <SensorBar room={room} state={state} />
-            </div>
-          </div>
+            </CollapseSection>
+          )}
+
+          {/* Scene / script quick-action buttons */}
+          {hasScenes && <SceneButtonsSection buttons={room.sceneButtons!} />}
 
           {/* Lights */}
-          {room.lights.length > 0 && (
-            <Section title="Lights">
+          {hasLights && (
+            <CollapseSection icon="mdi:lamp" title="Lys" badge={lightsBadge} defaultExpanded>
               <div className="space-y-2">
                 {room.lights.map((id) => (
                   <LightControl key={id} entityId={id} stripPrefix={room.name} />
                 ))}
               </div>
-            </Section>
+              {(room.individualLights?.length ?? 0) > 0 && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => setLightsExpanded((v) => !v)}
+                    className="flex w-full items-center justify-between rounded-xl px-2 py-1.5 text-xs text-text-dim hover:text-text-secondary transition-colors"
+                  >
+                    <span>{lightsExpanded ? "Skjul enkeltlys" : `${room.individualLights!.length} enkeltlys`}</span>
+                    <Icon
+                      icon="mdi:chevron-down"
+                      width={16}
+                      className={`transition-transform duration-200 ${lightsExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {lightsExpanded && (
+                      <motion.div
+                        key="individual-lights"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-2 pt-2">
+                          {room.individualLights!.map((id) => (
+                            <LightControl key={id} entityId={id} stripPrefix={room.name} />
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </CollapseSection>
           )}
 
-          {/* Covers */}
-          {(room.covers?.length ?? 0) > 0 && (
-            <div ref={coversRef}>
-              <Section title="Covers">
-                <div className="space-y-2">
-                  {room.covers!.map((id) => (
-                    <CoverControl key={id} entityId={id} stripPrefix={room.name} />
-                  ))}
-                </div>
-              </Section>
-            </div>
+          {/* Switches / Enheter */}
+          {hasSwitches && (
+            <CollapseSection icon="mdi:radio" title="Enheter" badge={switchesBadge} defaultExpanded>
+              <div className="divide-y divide-white/5">
+                {room.switches!.map((id) => (
+                  <SwitchControl
+                    key={id}
+                    entityId={id}
+                    stripPrefix={room.name}
+                    powerSensorId={room.switchPowerSensors?.[id]}
+                  />
+                ))}
+              </div>
+            </CollapseSection>
           )}
 
           {/* Climate */}
           {hasClimate && (
-            <div ref={climateRef}>
+            <CollapseSection icon="mdi:thermostat" title="Klima" defaultExpanded={false}>
               <ClimateSection
                 room={room}
                 entities={entities}
@@ -109,20 +232,15 @@ function RoomContent({ room }: { room: RoomConfig }) {
                 nextTransitionEntity={NEXT_CLIMATE_TRANSITION}
                 acUnits={AC_UNITS}
               />
-            </div>
+            </CollapseSection>
           )}
 
           {/* Media */}
           {hasMedia && (
-            <div ref={mediaRef}>
-              <MediaSection room={room} entities={entities} />
-            </div>
+            <MediaSection room={room} entities={entities} />
           )}
         </div>
       </div>
-
-      {/* Bottom action bar — outside scroll, pinned to flex bottom */}
-      <BottomActionBar room={room} state={state} onScrollTo={scrollTo} />
     </>
   );
 }

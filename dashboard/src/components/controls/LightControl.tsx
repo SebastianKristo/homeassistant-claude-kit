@@ -137,7 +137,7 @@ export function LightControl({ entityId, stripPrefix }: LightControlProps) {
   // --- Unavailable state ---
   if (isUnavailable) {
     return (
-      <div className="flex items-center justify-between rounded-xl bg-bg-elevated p-3 opacity-50">
+      <div className="flex items-center justify-between rounded-xl bg-bg-card p-3 opacity-50">
         <div className="flex items-center gap-2">
           <Icon icon={entityIcon} width={18} className="text-text-dim" />
           <span className="text-sm text-text-dim">{name}</span>
@@ -150,7 +150,7 @@ export function LightControl({ entityId, stripPrefix }: LightControlProps) {
   // --- Switch entity: toggle only ---
   if (isSwitch) {
     return (
-      <div className="flex items-center justify-between rounded-xl bg-bg-elevated p-3">
+      <div className="flex items-center justify-between rounded-xl bg-bg-card p-3">
         <button onClick={toggle} className="flex items-center gap-2">
           <Icon icon={entityIcon} width={18} style={isOn ? { color: "rgb(255,180,80)" } : undefined} className={!isOn ? "text-text-dim" : undefined} />
           <span className="text-sm">{name}</span>
@@ -162,7 +162,7 @@ export function LightControl({ entityId, stripPrefix }: LightControlProps) {
 
   // --- Full light control ---
   return (
-    <div className="overflow-hidden rounded-xl bg-bg-elevated">
+    <div className="overflow-hidden rounded-xl bg-bg-card">
       {/* Header: icon + name + brightness% + toggle */}
       <div className={`flex items-center justify-between px-3 ${isOn ? "pt-3 pb-1" : "py-3"}`}>
         <button onClick={toggle} className="flex items-center gap-2 min-w-0">

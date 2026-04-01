@@ -8,7 +8,7 @@ import type { RoomConfig } from "../../lib/areas";
 import type { AcConfig } from "../../lib/acUnits";
 import { parseNumericState } from "../../lib/format";
 import { IconButton } from "../controls/IconButton";
-import { Section, ToggleSwitch } from "./RoomPopupShared";
+import { ToggleSwitch } from "./RoomPopupShared";
 import { ROOM_ZONE_MAP } from "../../lib/entities";
 
 const AcControlPopup = lazy(() =>
@@ -81,23 +81,21 @@ export function ClimateSection({ room, entities, climateModeEntity, nextTransiti
 
   if (isClimateOff) {
     return (
-      <Section title="Climate">
-        <div className="rounded-xl bg-bg-elevated p-3 text-center text-xs text-text-dim">
-          Climate mode is off
-        </div>
-      </Section>
+      <div className="rounded-xl bg-bg-elevated p-3 text-center text-xs text-text-dim">
+        Climate mode is off
+      </div>
     );
   }
 
   return (
-    <Section title="Climate">
-      <div className="space-y-2">
+    <>
+    <div className="space-y-2">
         {/* Zone status + override */}
         {zone && (
           <div className={`rounded-xl p-3 transition-colors ${
             overrideOn
               ? "bg-accent-warm/10 ring-1 ring-accent-warm/25"
-              : "bg-bg-elevated"
+              : "bg-bg-card"
           }`}>
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
@@ -213,7 +211,7 @@ export function ClimateSection({ room, entities, climateModeEntity, nextTransiti
         {showAc && acConfig && acEntity && (
           <button
             onClick={() => setAcPopup(acConfig)}
-            className="flex w-full items-center justify-between rounded-xl bg-bg-elevated p-3 text-left hover:bg-white/8 active:bg-white/8"
+            className="flex w-full items-center justify-between rounded-xl bg-bg-card p-3 text-left hover:bg-white/8 active:bg-white/8"
           >
             <div>
               <div className="flex items-center gap-2">
@@ -254,6 +252,6 @@ export function ClimateSection({ room, entities, climateModeEntity, nextTransiti
           />
         </Suspense>
       )}
-    </Section>
+    </>
   );
 }

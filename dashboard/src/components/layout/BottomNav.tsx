@@ -32,13 +32,7 @@ export function BottomNav({ items, active, onNavigate }: BottomNavProps) {
                 width={22}
                 className={isActive ? "text-accent" : "text-text-dim"}
               />
-              <span
-                className={`text-[10px] leading-tight ${
-                  isActive
-                    ? "font-medium text-accent"
-                    : "text-text-dim"
-                }`}
-              >
+              <span className={`text-[10px] leading-tight ${isActive ? "font-medium text-accent" : "text-text-dim"}`}>
                 {item.label}
               </span>
             </button>

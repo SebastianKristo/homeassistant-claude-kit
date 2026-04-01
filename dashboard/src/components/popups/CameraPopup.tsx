@@ -16,6 +16,7 @@ import {
   startingStreams,
 } from "./camera-services";
 import { CameraStats } from "./CameraStats";
+import { CameraFrigateEvents } from "./CameraFrigateEvents";
 import { Go2RtcPlayer } from "../Go2RtcPlayer";
 import { SnapshotHistory, DateNavigator } from "../cards/SnapshotHistory";
 import { BottomSheet } from "./BottomSheet";
@@ -40,8 +41,15 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
   const entities = useHass((s) => s.entities) as HassEntities;
   const connection = useHass((s) => s.connection);
   const [imgError, setImgError] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
+  // Proxy mode: cameras without go2rtcStream use HA's camera_proxy (auto-refresh JPEG)
+  const isProxyCamera = !camera.go2rtcStream;
+  // alwaysStreaming or proxy cameras are immediately ready — no P2P start needed
+  const [isStreaming, setIsStreaming] = useState(() => !!camera.alwaysStreaming || isProxyCamera);
   const [isPlaying, setIsPlaying] = useState(false);
+  // Signed URL for proxy cameras (HA requires auth — img tags can't send Bearer headers)
+  const [signedProxyUrl, setSignedProxyUrl] = useState<string | null>(null);
+  // Auto-refresh timestamp to bust browser cache on each signed URL
+  const [proxyTs, setProxyTs] = useState(Date.now);
   const [viewingSnapshot, setViewingSnapshot] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [snapshotRefreshKey, setSnapshotRefreshKey] = useState(0);
@@ -52,19 +60,34 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
   const charging = entities[camera.chargingSensor]?.state;
   const cameraState = entities[camera.entity]?.state;
 
-  // Watch camera entity state via WS subscription (replaces REST polling).
-  // Sets isStreaming once entity transitions to "streaming".
+  // Proxy cameras: use entity_picture which includes a long-lived access token.
+  // Refresh the timestamp every 2 s to bust browser cache and get latest frame.
   useEffect(() => {
+    if (!isProxyCamera) return;
+    const entityPicture = entities[camera.entity]?.attributes?.entity_picture as string | undefined;
+    if (entityPicture) {
+      setSignedProxyUrl(entityPicture);
+    }
+  }, [isProxyCamera, entities, camera.entity]);
+
+  useEffect(() => {
+    if (!isProxyCamera) return;
+    const tsInterval = setInterval(() => setProxyTs(Date.now()), 2000);
+    return () => clearInterval(tsInterval);
+  }, [isProxyCamera]);
+
+  // For P2P battery cameras: watch entity state and start stream via service.
+  // alwaysStreaming and proxy cameras skip this entirely.
+  useEffect(() => {
+    if (camera.alwaysStreaming || isProxyCamera) return;
     if (!isStreaming && cameraState === "streaming") {
       setIsStreaming(true);
     }
-  }, [cameraState, isStreaming]);
+  }, [camera.alwaysStreaming, isProxyCamera, cameraState, isStreaming]);
 
-  // Auto-start stream on open, stop on unmount (popup close).
-  // Tries script.camera_switch_stream first (handles homebase constraint),
-  // falls back to direct eufy_security.start_p2p_livestream on failure.
-  // Stop timer uses module-level map so a new popup instance can cancel a pending stop.
   useEffect(() => {
+    if (camera.alwaysStreaming || isProxyCamera) return;
+
     // Cancel any pending stop from a previous popup instance for this camera
     const existingTimer = pendingStopTimers.get(camera.entity);
     if (existingTimer) {
@@ -79,9 +102,6 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
     }
 
     // Guard against React strict mode double-invoking this effect.
-    // Strict mode runs: mount → cleanup → remount. The cleanup runs BEFORE
-    // the remount, so a Set-based guard gets cleared too early. Use a
-    // timestamp instead — if a start was initiated < 10s ago, skip.
     const lastStart = startingStreams.get(camera.entity) ?? 0;
     if (Date.now() - lastStart < 10_000) {
       return;
@@ -90,12 +110,9 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
 
     let cancelled = false;
     (async () => {
-      // Try script first (handles homebase switching)
       const ok = await callServiceRest("script", "camera_switch_stream", {
         camera_entity: camera.entity,
       });
-
-      // Fallback: direct start if script failed (addon restarting, script error, etc.)
       if (!ok && !cancelled) {
         await callServiceRest("eufy_security", "start_p2p_livestream", {
           entity_id: camera.entity,
@@ -108,7 +125,6 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
       const entity = camera.entity;
       const timer = setTimeout(() => {
         pendingStopTimers.delete(entity);
-        // Fire-and-forget stop -- don't need to await or check result
         fetch(`/api/states/${entity}`, { headers: authHeaders() })
           .then((r) => r.ok ? r.json() : null)
           .then((data) => {
@@ -122,7 +138,7 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
       }, 2000);
       pendingStopTimers.set(entity, timer);
     };
-  }, [camera.entity]);
+  }, [camera.alwaysStreaming, camera.entity]);
 
   // Save snapshot once video frames are flowing (once per popup open).
   // Skips if a snapshot was saved within the last 15 minutes.
@@ -158,7 +174,7 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
           setSnapshotRefreshKey((k) => k + 1);
           onSnapshotRef.current?.(camera.id);
         }
-      });
+      }, camera.entity);
     };
 
     // Wait for the stream to stabilize before checking/saving
@@ -174,7 +190,7 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
       setSnapshotRefreshKey((k) => k + 1);
       onSnapshotRef.current?.(camera.id);
       setIsTakingSnapshot(false);
-    });
+    }, camera.entity);
   };
 
   // Last person detection from HA history (person sensor last "on" state)
@@ -246,12 +262,28 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
               )}
               {isStreaming ? (
                 <>
+                  {isProxyCamera ? (
+                    signedProxyUrl ? (
+                    <img
+                      src={`${signedProxyUrl}&_t=${proxyTs}`}
+                      alt={camera.name}
+                      className="absolute inset-0 h-full w-full object-contain"
+                      onLoad={() => setIsPlaying(true)}
+                      onError={() => {}}
+                    />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Icon icon="mdi:loading" width={28} className="animate-spin text-white/40" />
+                      </div>
+                    )
+                  ) : (
                   <Go2RtcPlayer
                     stream={camera.go2rtcStream}
                     cameraEntity={camera.entity}
                     className="absolute inset-0 h-full w-full"
                     onPlaying={() => setIsPlaying(true)}
                   />
+                  )}
                   {/* Stream overlay buttons */}
                   {camera.hasGateLock && (
                     <button
@@ -308,6 +340,10 @@ function CameraContent({ camera, onSnapshot, gateLockEntity }: { camera: CameraC
           refreshKey={snapshotRefreshKey}
           onSelect={(url) => setViewingSnapshot(url)}
         />
+
+        {camera.frigateCamera && (
+          <CameraFrigateEvents frigateCamera={camera.frigateCamera} />
+        )}
       </div>
     </>
   );

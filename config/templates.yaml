@@ -1,0 +1,2788 @@
+#########################################
+#                                       #
+#              STRØMPRIS                #
+#         Nordpool med tillegg          #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Totalpris inkludert grid, el_company og Strømstøtte"
+      unit_of_measurement: "Øre/kWh"
+      unique_id: nordpool_calculated_price
+      state_class: measurement
+      state: >
+        {% set current_time = now() %}
+        {% set grid_day_cost = states('input_number.grid_day_hourly_cost') | float(0) %}
+        {% set grid_night_cost = states('input_number.grid_night_hourly_cost') | float(0) %}
+        {% set el_company_surcharge = states('input_number.el_company_surcharge') | float(0) %}
+        {% set government_support_percentage = states('input_number.electricity_government_support_percentage') | float(0) %}
+        {% set government_support_threshold = states('input_number.electricity_government_support_threshold') | float(0) %}
+        {% set is_workday = is_state('binary_sensor.arbeidsdag_sensor', 'on') %}
+        {% set include_government_support = is_state('input_boolean.include_government_support', 'on') %}
+        {% set include_grid = is_state('input_boolean.include_grid', 'on') %}
+        {% set include_el_company = is_state('input_boolean.include_el_company', 'on') %}
+        {% set include_vat = is_state('input_boolean.include_vat', 'on') %}
+        {% set vat_percent = states('input_number.vat_percent') | float(0) / 100 %}
+        {% set current_price = namespace(value=0) %}
+        {% set raw_today = state_attr('sensor.nordpool_kwh_no1_nok_3_10_025', 'raw_today') %}
+        {% if raw_today is not none %}
+          {% for period in raw_today %}
+            {% set start = as_timestamp(period.start) %}
+            {% set end = as_timestamp(period.end) %}
+            {% if start <= as_timestamp(current_time) < end %}
+              {% set is_day = is_workday and (6 <= (start | timestamp_custom('%H', True) | int) < 22) %}
+              {% set grid_cost = grid_day_cost if is_day else grid_night_cost %}
+              {% set nordpool_price = period.value %}
+              {% set support = ((nordpool_price - government_support_threshold) * (government_support_percentage / 100)) if include_government_support and nordpool_price > government_support_threshold else 0 %}
+              {% set total_price = (nordpool_price - support + (grid_cost if include_grid else 0) + (el_company_surcharge if include_el_company else 0)) | round(2) %}
+              {% set current_price.value = (total_price * (1 + vat_percent)) if include_vat else total_price %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {{ current_price.value | round(2) }}
+      attributes:
+        raw_today: >
+          {% set grid_day_cost = states('input_number.grid_day_hourly_cost') | float(0) %}
+          {% set grid_night_cost = states('input_number.grid_night_hourly_cost') | float(0) %}
+          {% set el_company_surcharge = states('input_number.el_company_surcharge') | float(0) %}
+          {% set government_support_percentage = states('input_number.electricity_government_support_percentage') | float(0) %}
+          {% set government_support_threshold = states('input_number.electricity_government_support_threshold') | float(0) %}
+          {% set is_workday = is_state('binary_sensor.arbeidsdag_sensor', 'on') %}
+          {% set include_government_support = is_state('input_boolean.include_government_support', 'on') %}
+          {% set include_grid = is_state('input_boolean.include_grid', 'on') %}
+          {% set include_el_company = is_state('input_boolean.include_el_company', 'on') %}
+          {% set include_vat = is_state('input_boolean.include_vat', 'on') %}
+          {% set vat_percent = states('input_number.vat_percent') | float(0) / 100 %}
+          {% set raw_today = state_attr('sensor.nordpool_kwh_no1_nok_3_10_025', 'raw_today') %}
+          {% if raw_today is not none %}
+            [
+            {% for period in raw_today %}
+              {% set start_time = as_timestamp(period.start) | timestamp_custom('%H', True) | int %}
+              {% set is_day = is_workday and (6 <= start_time < 22) %}
+              {% set grid_cost = grid_day_cost if is_day else grid_night_cost %}
+              {% set nordpool_price = period.value %}
+              {% set support = ((nordpool_price - government_support_threshold) * (government_support_percentage / 100)) if include_government_support and nordpool_price > government_support_threshold else 0 %}
+              {% set total_price = (nordpool_price - support + (grid_cost if include_grid else 0) + (el_company_surcharge if include_el_company else 0)) | round(2) %}
+              {% set total_price = (total_price * (1 + vat_percent)) if include_vat else total_price %}
+              {
+                "start": "{{ period.start }}",
+                "end": "{{ period.end }}",
+                "value": {{ total_price | round(2) }}
+              }{% if not loop.last %},{% endif %}
+            {% endfor %}
+            ]
+          {% else %}
+            []
+          {% endif %}
+        raw_tomorrow: >
+          {% set grid_day_cost = states('input_number.grid_day_hourly_cost') | float(0) %}
+          {% set grid_night_cost = states('input_number.grid_night_hourly_cost') | float(0) %}
+          {% set el_company_surcharge = states('input_number.el_company_surcharge') | float(0) %}
+          {% set government_support_percentage = states('input_number.electricity_government_support_percentage') | float(0) %}
+          {% set government_support_threshold = states('input_number.electricity_government_support_threshold') | float(0) %}
+          {% set is_workday = is_state('binary_sensor.arbeidsdag_i_morgen', 'on') %}
+          {% set include_government_support = is_state('input_boolean.include_government_support', 'on') %}
+          {% set include_grid = is_state('input_boolean.include_grid', 'on') %}
+          {% set include_el_company = is_state('input_boolean.include_el_company', 'on') %}
+          {% set include_vat = is_state('input_boolean.include_vat', 'on') %}
+          {% set vat_percent = states('input_number.vat_percent') | float(0) / 100 %}
+          {% set raw_tomorrow = state_attr('sensor.nordpool_kwh_no1_nok_3_10_025', 'raw_tomorrow') %}
+          {% if raw_tomorrow is not none %}
+            [
+            {% for period in raw_tomorrow %}
+              {% set start_time = as_timestamp(period.start) | timestamp_custom('%H', True) | int %}
+              {% set is_day = is_workday and (6 <= start_time < 22) %}
+              {% set grid_cost = grid_day_cost if is_day else grid_night_cost %}
+              {% set nordpool_price = period.value %}
+              {% set support = ((nordpool_price - government_support_threshold) * (government_support_percentage / 100)) if include_government_support and nordpool_price > government_support_threshold else 0 %}
+              {% set total_price = (nordpool_price - support + (grid_cost if include_grid else 0) + (el_company_surcharge if include_el_company else 0)) %}
+              {% set total_price = (total_price * (1 + vat_percent)) if include_vat else total_price %}
+              {
+                "start": "{{ period.start }}",
+                "end": "{{ period.end }}",
+                "value": {{ total_price | round(2) }}
+              }{% if not loop.last %},{% endif %}
+            {% endfor %}
+            ]
+          {% else %}
+            []
+          {% endif %}
+        min: >
+          {% set nordpool_min = state_attr('sensor.nordpool_kwh_no1_nok_3_10_025', 'min') | float(0) %}
+          {% set grid_day_cost = states('input_number.grid_day_hourly_cost') | float(0) %}
+          {% set el_company_surcharge = states('input_number.el_company_surcharge') | float(0) %}
+          {% set government_support_percentage = states('input_number.electricity_government_support_percentage') | float(0) %}
+          {% set government_support_threshold = states('input_number.electricity_government_support_threshold') | float(0) %}
+          {% set include_government_support = is_state('input_boolean.include_government_support', 'on') %}
+          {% set include_grid = is_state('input_boolean.include_grid', 'on') %}
+          {% set include_el_company = is_state('input_boolean.include_el_company', 'on') %}
+          {% set include_vat = is_state('input_boolean.include_vat', 'on') %}
+          {% set vat_percent = states('input_number.vat_percent') | float(0) / 100 %}
+          {% set support = ((nordpool_min - government_support_threshold) * (government_support_percentage / 100)) if include_government_support and nordpool_min > government_support_threshold else 0 %}
+          {% set total_price = (nordpool_min - support + (grid_day_cost if include_grid else 0) + (el_company_surcharge if include_el_company else 0)) %}
+          {% set total_price = (total_price * (1 + vat_percent)) if include_vat else total_price %}
+          {{ total_price | round(2) }}
+        max: >
+          {% set nordpool_max = state_attr('sensor.nordpool_kwh_no1_nok_3_10_025', 'max') | float(0) %}
+          {% set grid_day_cost = states('input_number.grid_day_hourly_cost') | float(0) %}
+          {% set el_company_surcharge = states('input_number.el_company_surcharge') | float(0) %}
+          {% set government_support_percentage = states('input_number.electricity_government_support_percentage') | float(0) %}
+          {% set government_support_threshold = states('input_number.electricity_government_support_threshold') | float(0) %}
+          {% set include_government_support = is_state('input_boolean.include_government_support', 'on') %}
+          {% set include_grid = is_state('input_boolean.include_grid', 'on') %}
+          {% set include_el_company = is_state('input_boolean.include_el_company', 'on') %}
+          {% set include_vat = is_state('input_boolean.include_vat', 'on') %}
+          {% set vat_percent = states('input_number.vat_percent') | float(0) / 100 %}
+          {% set support = ((nordpool_max - government_support_threshold) * (government_support_percentage / 100)) if include_government_support and nordpool_max > government_support_threshold else 0 %}
+          {% set total_price = (nordpool_max - support + (grid_day_cost if include_grid else 0) + (el_company_surcharge if include_el_company else 0)) %}
+          {% set total_price = (total_price * (1 + vat_percent)) if include_vat else total_price %}
+          {{ total_price | round(2) }}
+        mean: >
+          {% set nordpool_mean = state_attr('sensor.nordpool_kwh_no1_nok_3_10_025', 'mean') | float(0) %}
+          {% set grid_day_cost = states('input_number.grid_day_hourly_cost') | float(0) %}
+          {% set el_company_surcharge = states('input_number.el_company_surcharge') | float(0) %}
+          {% set government_support_percentage = states('input_number.electricity_government_support_percentage') | float(0) %}
+          {% set government_support_threshold = states('input_number.electricity_government_support_threshold') | float(0) %}
+          {% set include_government_support = is_state('input_boolean.include_government_support', 'on') %}
+          {% set include_grid = is_state('input_boolean.include_grid', 'on') %}
+          {% set include_el_company = is_state('input_boolean.include_el_company', 'on') %}
+          {% set include_vat = is_state('input_boolean.include_vat', 'on') %}
+          {% set vat_percent = states('input_number.vat_percent') | float(0) / 100 %}
+          {% set support = ((nordpool_mean - government_support_threshold) * (government_support_percentage / 100)) if include_government_support and nordpool_mean > government_support_threshold else 0 %}
+          {% set total_price = (nordpool_mean - support + (grid_day_cost if include_grid else 0) + (el_company_surcharge if include_el_company else 0)) %}
+          {% set total_price = (total_price * (1 + vat_percent)) if include_vat else total_price %}
+          {{ total_price | round(2) }}
+        grid_day_cost: "{{ states('input_number.grid_day_hourly_cost') }}"
+        grid_night_cost: "{{ states('input_number.grid_night_hourly_cost') }}"
+        el_company_surcharge: "{{ states('input_number.el_company_surcharge') }}"
+        government_support_percentage: "{{ states('input_number.electricity_government_support_percentage') }}"
+        government_support_threshold: "{{ states('input_number.electricity_government_support_threshold') }}"
+        include_government_support: "{{ is_state('input_boolean.include_government_support', 'on') }}"
+        include_grid: "{{ is_state('input_boolean.include_grid', 'on') }}"
+        include_vat: "{{ is_state('input_boolean.include_vat', 'on') }}"
+
+#########################################
+#                                       #
+#              DATO OG TID              #
+#                                       #
+#########################################
+
+- sensor:
+    - name: Current Date
+      unique_id: "current_date"
+      state: >
+        {% set days = ["st", "nd", "rd"] %}
+        {% set day = now().day %}
+        {{ now().strftime('%A ') }}{{ day }}{{ days[day-1] if day in range(1, 4) and day not in range(11, 14) else 'th' }} {{ now().strftime('%B %Y') }}
+
+    - name: Current Time
+      unique_id: "current_time"
+      state: "{{ now().strftime('%H:%M') }}"
+
+#########################################
+#                                       #
+#              VANN                     #
+#                                       #
+#########################################
+
+- binary_sensor:
+    - name: "VVB_Legionella_OK"
+      unique_id: "vvb_legionella_ok"
+      delay_on:
+        minutes: 5
+      state: "{{ now().strftime('%Y-%m-%d %H:%M:%S') < states('input_datetime.vvb_heater_legioniella') }}"
+
+- sensor:
+    - name: "My Water Grip Total Volume m3"
+      unique_id: "my_water_grip_total_colume_m3"
+      unit_of_measurement: "m³"
+      state: "{{ states('sensor.vannmaler_total_volume') | float(0) / 1000 }}"
+
+    - name: "Next collection"
+      unique_id: "next_collection"
+      state: >
+        {% set garbage_types = {
+          'sensor.restavfall': "Mat & Plast & Restavfall",
+          'sensor.papir_og_papp': "Papir & Papp"
+        } %}
+        {% set pickup_days = namespace(min=999, types=[]) %}
+        {% for sensor, garbage_type in garbage_types.items() %}
+          {% set days = state_attr(sensor, 'days_to_pickup') | int(0) %}
+          {% if days < pickup_days.min %}
+            {% set pickup_days.min = days %}
+            {% set pickup_days.types = [garbage_type] %}
+          {% elif days == pickup_days.min %}
+            {% set pickup_days.types = pickup_days.types + [garbage_type] %}
+          {% endif %}
+        {% endfor %}
+        {% set types_string = pickup_days.types | join(' and ') if pickup_days.types | length > 1 else pickup_days.types[0] if pickup_days.types | length > 0 else 'None' %}
+        {{ pickup_days.min }},{{ types_string }}
+
+#########################################
+#                                       #
+#              VÆR                      #
+#         Værdata og prognoser          #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Temprature_feels_like"
+      unit_of_measurement: "°C"
+      state: >
+        {% set T = state_attr('weather.forecast_home', 'temperature') | float(0) %}
+        {% set K = (state_attr('weather.forecast_home', 'wind_speed') | float(0)) / 3.6 %}
+        {% set V = (K / 1000 * 60 * 60) %}
+        {% set A = 13.12 + 0.6215 * T - 11.37 * (V ** 0.16) + 0.3965 * T * (V ** 0.16) %}
+        {{ A | round(1) }}
+
+    - name: "Weather Info English"
+      unique_id: "weather_info_eng"
+      state: >
+        {% set weather = states('weather.forecast_home') %}
+        {% if is_state('sun.sun', 'above_horizon') %}
+          {{ '/local/weather/' ~ weather ~ '.svg' }}
+        {% else %}
+          {{ '/local/weather/' ~ weather ~ '_night.svg' }}
+        {% endif %}
+      attributes:
+        temp: >
+          {{ state_attr('weather.forecast_home', 'temperature') }}
+        feels_like: >
+          {% set T = state_attr('weather.forecast_home', 'temperature') | float(0) %}
+          {% set K = (state_attr('weather.forecast_home', 'wind_speed') | float(0)) / 3.6 %}
+          {% set V = (K / 1000 * 60 * 60) %}
+          {% set A = 13.12 + 0.6215 * T - 11.37 * (V ** 0.16) + 0.3965 * T * (V ** 0.16) %}
+          {{ A | round(1) }}
+        desc: >
+          {{ states('weather.forecast_home') }}
+        precipitation: >
+          {% set forecast = state_attr('weather.forecast_home', 'forecast') %}
+          {{ forecast[0].precipitation if forecast is not none and forecast | length > 0 else 0 }}
+        precipitation_percent: >
+          {% set forecast = state_attr('weather.forecast_home', 'forecast') %}
+          {{ forecast[0].precipitation_probability if forecast is not none and forecast | length > 0 else 0 }}
+        wind_dir: >
+          {% set direction = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N'] %}
+          {% set degree = state_attr('weather.forecast_home', 'wind_bearing') | float(0) %}
+          {{ direction[((degree + 11.25) / 22.5) | int] }}
+        wind_speed: >
+          {% set sensor = state_attr('weather.forecast_home', 'wind_speed') | float(0) %}
+          {{ (sensor / 3.6) | round(1) }}
+        wind_desc: >
+          {% set sensor = state_attr('weather.forecast_home', 'wind_speed') | float(0) %}
+          {% if sensor >= 0 and sensor <= 0.99 %}
+            Calm
+          {% elif sensor >= 1 and sensor <= 6.99 %}
+            Light air
+          {% elif sensor >= 7 and sensor <= 11.99 %}
+            Light breeze
+          {% elif sensor >= 12 and sensor <= 19.99 %}
+            Gentle breeze
+          {% elif sensor >= 20 and sensor <= 29.99 %}
+            Moderate breeze
+          {% elif sensor >= 30 and sensor <= 39.99 %}
+            Fresh breeze
+          {% elif sensor >= 40 and sensor <= 50.99 %}
+            Strong breeze
+          {% elif sensor >= 51 and sensor <= 62.99 %}
+            Near gale
+          {% elif sensor >= 63 and sensor <= 75.99 %}
+            Gale
+          {% elif sensor >= 76 and sensor <= 87.99 %}
+            Strong gale
+          {% elif sensor >= 88 and sensor <= 102.99 %}
+            Storm
+          {% elif sensor >= 103 and sensor <= 117.99 %}
+            Violent storm
+          {% else %}
+            Hurricane
+          {% endif %}
+
+#########################################
+#                                       #
+#         VÆR FORECAST V2               #
+#                                       #
+#########################################
+
+- trigger:
+    - platform: time_pattern
+      minutes: /15
+    - platform: homeassistant
+      event: start
+  action:
+    - service: weather.get_forecasts
+      target:
+        entity_id: weather.forecast_home
+      data:
+        type: daily
+      response_variable: daily_forecast
+    - service: weather.get_forecasts
+      target:
+        entity_id: weather.forecast_home
+      data:
+        type: hourly
+      response_variable: hourly_forecast
+  sensor:
+    - name: Weather Forecast V2
+      unique_id: weather_forecast_combined_v2
+      state: "{{ now().isoformat() }}"
+      attributes:
+        current: >
+          {% set current = hourly_forecast['weather.forecast_home'].forecast[0] %}
+          {% from 'weather_translate.jinja' import translate_condition %}
+          {% set t = current.temperature | float(0) %}
+          {% set k = (current.wind_speed | float(0)) / 3.6 %}
+          {% set v = (k / 1000 * 60 * 60) %}
+          {% set a = 13.12 + 0.6215 * t - 11.37 * (v ** 0.16) + 0.3965 * t * (v ** 0.16) %}
+          {% set direction = ['N','NNØ','NØ','ØNØ','Ø','ØSØ','SØ','SSØ','S','SSV','SV','VSV','V','VNV','NV','NNV','N'] %}
+          {% set degree = current.wind_bearing | float(0) %}
+          {% from 'weather_wind.jinja' import get_wind_description %}
+          {% set weather = current.condition %}
+          {
+            "condition": "{{ translate_condition(weather) | trim }}",
+            "icon": "{% if is_state('sun.sun', 'above_horizon') %}{{ '/local/ic/weather_icons/met/' ~ weather ~ '.svg' }}{% else %}{{ '/local/ic/weather_icons/met/' ~ weather ~ '_night.svg' }}{% endif %}",
+            "temperature": {{ current.temperature }},
+            "wind_speed": {{ (current.wind_speed | float(0) / 3.6) | round(1) }},
+            "wind_gust_speed": {{ current.wind_gust_speed | float(0) }},
+            "wind_bearing": {{ current.wind_bearing | float(0) }},
+            "wind_dir": "{{ direction[((degree + 11.25) / 22.5) | int] }}",
+            "wind_desc": "{{ get_wind_description(current.wind_speed | float(0)) | trim | replace('\n', '') }}",
+            "precipitation": {{ current.precipitation | float(0) }},
+            "precipitation_probability": {{ current.precipitation_probability | int(0) }},
+            "humidity": {{ current.humidity | int(0) }},
+            "cloud_coverage": {{ current.cloud_coverage | int(0) }},
+            "feels_like": {{ a | round(1) }}
+            {% if current.uv_index is defined and current.uv_index is not none %},
+            "uv_index": {{ current.uv_index }}
+            {% endif %}
+          }
+        today: >
+          {% set today = daily_forecast['weather.forecast_home'].forecast[0] %}
+          {% from 'weather_translate.jinja' import translate_condition %}
+          {% set t = today.temperature | float(0) %}
+          {% set k = (today.wind_speed | float(0)) / 3.6 %}
+          {% set v = (k / 1000 * 60 * 60) %}
+          {% set a = 13.12 + 0.6215 * t - 11.37 * (v ** 0.16) + 0.3965 * t * (v ** 0.16) %}
+          {% set direction = ['N','NNØ','NØ','ØNØ','Ø','ØSØ','SØ','SSØ','S','SSV','SV','VSV','V','VNV','NV','NNV','N'] %}
+          {% set degree = today.wind_bearing | float(0) %}
+          {% from 'weather_wind.jinja' import get_wind_description %}
+          {% set weather = today.condition %}
+          {
+            "condition": "{{ translate_condition(weather) | trim }}",
+            "icon": "{{ '/local/ic/weather_icons/met/' ~ weather ~ '.svg' }}",
+            "temperature": {{ today.temperature }},
+            "templow": {{ today.templow | float(0) }},
+            "wind_speed": {{ (today.wind_speed | float(0) / 3.6) | round(1) }},
+            "wind_gust_speed": {{ today.wind_gust_speed | float(0) }},
+            "wind_bearing": {{ today.wind_bearing | float(0) }},
+            "wind_dir": "{{ direction[((degree + 11.25) / 22.5) | int] }}",
+            "wind_desc": "{{ get_wind_description(today.wind_speed | float(0)) | trim | replace('\n', '') }}",
+            "precipitation": {{ today.precipitation | float(0) }},
+            "precipitation_probability": {{ today.precipitation_probability | int(0) }},
+            "humidity": {{ today.humidity | int(0) }},
+            "feels_like": {{ a | round(1) }}
+            {% if today.uv_index is defined and today.uv_index is not none %},
+            "uv_index": {{ today.uv_index }}
+            {% endif %}
+          }
+        forecast: >
+          [
+            {% for i in range(1, 6) %}
+              {% if i < daily_forecast['weather.forecast_home'].forecast | length %}
+                {% set day = daily_forecast['weather.forecast_home'].forecast[i] %}
+                {% from 'weather_translate.jinja' import translate_condition %}
+                {% from 'weather_wind.jinja' import get_wind_description %}
+                {% set weather = day.condition %}
+                {
+                  "datetime": "{{ day.datetime }}",
+                  "condition": "{{ translate_condition(weather) | trim }}",
+                  "icon": "{{ '/local/ic/weather_icons/met/' ~ weather ~ '.svg' }}",
+                  "temperature": {{ day.temperature | float(0) }}
+                  {% if day.precipitation is defined and day.precipitation is not none %},
+                  "precipitation": {{ day.precipitation }}
+                  {% endif %}
+                  {% if day.wind_speed is defined and day.wind_speed is not none %},
+                  "wind_speed": {{ (day.wind_speed | float(0) / 3.6) | round(1) }},
+                  "wind_desc": "{{ get_wind_description(day.wind_speed | float(0)) | trim | replace('\n', '') }}"
+                  {% endif %}
+                  {% if day.uv_index is defined and day.uv_index is not none %},
+                  "uv_index": {{ day.uv_index }}
+                  {% endif %}
+                }{% if not loop.last %},{% endif %}
+              {% endif %}
+            {% endfor %}
+          ]
+        hourly: >
+          [
+            {% for i in range(1, hourly_forecast['weather.forecast_home'].forecast | length) %}
+              {% set hour = hourly_forecast['weather.forecast_home'].forecast[i] %}
+              {% set weather = hour.condition %}
+              {% set hour_int = hour.datetime.split('T')[1].split(':')[0] | int %}
+              {% set is_day = hour_int >= 6 and hour_int < 20 %}
+              {
+                "datetime": "{{ hour.datetime }}",
+                "icon": "{% if is_day %}{{ '/local/ic/weather_icons/met/' ~ weather ~ '.svg' }}{% else %}{{ '/local/ic/weather_icons/met/' ~ weather ~ '_night.svg' }}{% endif %}",
+                "temperature": {{ hour.temperature | float(0) }},
+                "wind_speed": {{ (hour.wind_speed | float(0) / 3.6) | round(1) }}
+                {% if hour.precipitation is defined and hour.precipitation is not none %},
+                "precipitation": {{ hour.precipitation }}
+                {% endif %}
+              }{% if not loop.last %},{% endif %}
+            {% endfor %}
+          ]
+
+- trigger:
+    - platform: time_pattern
+      hours: /1
+    - platform: homeassistant
+      event: start
+  action:
+    - action: weather.get_forecasts
+      target:
+        entity_id: weather.forecast_home
+      data:
+        type: daily
+      response_variable: daily
+  sensor:
+    - name: "Weather Info tutorial"
+      unique_id: "weather_info_tutorial"
+      state: "Something"
+      attributes:
+        condition: "{{ daily['weather.forecast_home'].forecast[0].condition }}"
+        temperature: "{{ daily['weather.forecast_home'].forecast[0].temperature }}"
+        precipitation: "{{ daily['weather.forecast_home'].forecast[0].precipitation }}"
+        precipitation_percent: "{{ daily['weather.forecast_home'].forecast[0].precipitation_probability }}"
+        wind_speed: "{{ daily['weather.forecast_home'].forecast[0].wind_speed }}"
+        cond_icon: >
+          {% set weather = daily['weather.forecast_home'].forecast[0].condition %}
+          {% if is_state('sun.sun', 'above_horizon') %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% else %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% endif %}
+        feels_like: >
+          {% set T = daily['weather.forecast_home'].forecast[0].temperature | float(0) %}
+          {% set K = (daily['weather.forecast_home'].forecast[0].wind_speed | float(0)) / 3.6 %}
+          {% set V = (K / 1000 * 60 * 60) %}
+          {% set A = 13.12 + 0.6215 * T - 11.37 * (V ** 0.16) + 0.3965 * T * (V ** 0.16) %}
+          {{ A | round(1) }}
+        wind_dir: >
+          {% set direction = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N'] %}
+          {% set degree = daily['weather.forecast_home'].forecast[0].wind_bearing | float(0) %}
+          {{ direction[((degree + 11.25) / 22.5) | int] }}
+        wind_desc: >
+          {% set sensor = daily['weather.forecast_home'].forecast[0].wind_speed | float(0) %}
+          {% if sensor >= 0 and sensor <= 0.99 %}
+            Calm
+          {% elif sensor >= 1 and sensor <= 6.99 %}
+            Light air
+          {% elif sensor >= 7 and sensor <= 11.99 %}
+            Light breeze
+          {% elif sensor >= 12 and sensor <= 19.99 %}
+            Gentle breeze
+          {% elif sensor >= 20 and sensor <= 29.99 %}
+            Moderate breeze
+          {% elif sensor >= 30 and sensor <= 39.99 %}
+            Fresh breeze
+          {% elif sensor >= 40 and sensor <= 50.99 %}
+            Strong breeze
+          {% elif sensor >= 51 and sensor <= 62.99 %}
+            Near gale
+          {% elif sensor >= 63 and sensor <= 75.99 %}
+            Gale
+          {% elif sensor >= 76 and sensor <= 87.99 %}
+            Strong gale
+          {% elif sensor >= 88 and sensor <= 102.99 %}
+            Storm
+          {% elif sensor >= 103 and sensor <= 117.99 %}
+            Violent storm
+          {% else %}
+            Hurricane
+          {% endif %}
+        datetime1: "{{ daily['weather.forecast_home'].forecast[1].datetime }}"
+        condition1: "{{ daily['weather.forecast_home'].forecast[1].condition }}"
+        cond_icon1: >
+          {% set weather = daily['weather.forecast_home'].forecast[1].condition %}
+          {% if is_state('sun.sun', 'above_horizon') %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% else %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% endif %}
+        temperature1: "{{ daily['weather.forecast_home'].forecast[1].temperature }}"
+        precipitation1: "{{ daily['weather.forecast_home'].forecast[1].precipitation }}"
+        datetime2: "{{ daily['weather.forecast_home'].forecast[2].datetime }}"
+        condition2: "{{ daily['weather.forecast_home'].forecast[2].condition }}"
+        cond_icon2: >
+          {% set weather = daily['weather.forecast_home'].forecast[2].condition %}
+          {% if is_state('sun.sun', 'above_horizon') %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% else %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% endif %}
+        temperature2: "{{ daily['weather.forecast_home'].forecast[2].temperature }}"
+        precipitation2: "{{ daily['weather.forecast_home'].forecast[2].precipitation }}"
+        datetime3: "{{ daily['weather.forecast_home'].forecast[3].datetime }}"
+        condition3: "{{ daily['weather.forecast_home'].forecast[3].condition }}"
+        cond_icon3: >
+          {% set weather = daily['weather.forecast_home'].forecast[3].condition %}
+          {% if is_state('sun.sun', 'above_horizon') %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% else %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% endif %}
+        temperature3: "{{ daily['weather.forecast_home'].forecast[3].temperature }}"
+        precipitation3: "{{ daily['weather.forecast_home'].forecast[3].precipitation }}"
+        datetime4: "{{ daily['weather.forecast_home'].forecast[4].datetime }}"
+        condition4: "{{ daily['weather.forecast_home'].forecast[4].condition }}"
+        cond_icon4: >
+          {% set weather = daily['weather.forecast_home'].forecast[4].condition %}
+          {% if is_state('sun.sun', 'above_horizon') %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% else %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% endif %}
+        temperature4: "{{ daily['weather.forecast_home'].forecast[4].temperature }}"
+        precipitation4: "{{ daily['weather.forecast_home'].forecast[4].precipitation }}"
+        datetime5: "{{ daily['weather.forecast_home'].forecast[5].datetime }}"
+        condition5: "{{ daily['weather.forecast_home'].forecast[5].condition }}"
+        cond_icon5: >
+          {% set weather = daily['weather.forecast_home'].forecast[5].condition %}
+          {% if is_state('sun.sun', 'above_horizon') %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% else %}
+            {{ '/local/weather/' ~ weather ~ '.svg' }}
+          {% endif %}
+        temperature5: "{{ daily['weather.forecast_home'].forecast[5].temperature }}"
+        precipitation5: "{{ daily['weather.forecast_home'].forecast[5].precipitation }}"
+
+- trigger:
+    - trigger: time_pattern
+      hours: /1
+    - trigger: event
+      event_type: event_template_reloaded
+  action:
+    - action: weather.get_forecasts
+      target:
+        entity_id:
+          - weather.forecast_home
+      data:
+        type: daily
+      response_variable: dailyforecast
+  sensor:
+    - name: Weather Entity Forecast
+      unique_id: weather_entity_forecast
+      state: "{{ states('weather.forecast_home') }}"
+      icon: mdi:hours-24
+      attributes:
+        condition: "{{ states('weather.forecast_home') }}"
+        cloud_coverage: "{{ state_attr('weather.forecast_home', 'cloud_coverage') }}"
+        temperature: "{{ state_attr('weather.forecast_home', 'temperature') }}"
+        wind_speed: "{{ state_attr('weather.forecast_home', 'wind_speed') }}"
+        wind_gust: "{{ state_attr('weather.forecast_home', 'wind_gust_speed') }}"
+        dew_point: "{{ state_attr('weather.forecast_home', 'dew_point') }}"
+        wind_bearing: "{{ state_attr('weather.forecast_home', 'wind_bearing') }}"
+        datetime: "{{ dailyforecast['weather.forecast_home'].forecast[0].datetime }}"
+        forecast: "{{ dailyforecast['weather.forecast_home'].forecast }}"
+
+#########################################
+#                                       #
+#              LYS TELLERE              #
+#         Diverse innstillinger         #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Kjøkken lys teller"
+      unique_id: kjokken_lys_teller
+      state: >
+        {% set lys = state_attr('group.kjokken_lys_gruppe', 'entity_id') %}
+        {% if lys is not none %}
+          {% set på = lys | select('is_state', 'on') | list | count %}
+          {{ på }}
+        {% else %}
+          0
+        {% endif %}
+      unit_of_measurement: "lys"
+      icon: mdi:lightbulb-group
+
+    - name: "Stue lys teller"
+      unique_id: stue_lys_teller
+      state: >
+        {% set lys = state_attr('light.stue_lys', 'entity_id') %}
+        {% if lys is not none %}
+          {% set på = lys | select('is_state', 'on') | list | count %}
+          {{ på }}
+        {% else %}
+          0
+        {% endif %}
+      unit_of_measurement: "lys"
+      icon: mdi:lightbulb-group
+
+    - name: "Soverom lys teller"
+      unique_id: soverom_lys_teller
+      state: >
+        {% set lys = state_attr('group.soverom_lys_gruppe', 'entity_id') %}
+        {% if lys is not none %}
+          {% set på = lys | select('is_state', 'on') | list | count %}
+          {{ på }}
+        {% else %}
+          0
+        {% endif %}
+      unit_of_measurement: "lys"
+      icon: mdi:lightbulb-group
+
+    - name: "Inngang lys teller"
+      unique_id: inngang_lys_teller
+      state: >
+        {% set lys = state_attr('group.inngang_lys_gruppe', 'entity_id') %}
+        {% if lys is not none %}
+          {% set på = lys | select('is_state', 'on') | list | count %}
+          {{ på }}
+        {% else %}
+          0
+        {% endif %}
+      unit_of_measurement: "lys"
+      icon: mdi:lightbulb-group
+
+    - name: "Alle lys teller"
+      unique_id: alle_lys_teller
+      state: >
+        {% set lys = state_attr('light.alle_lys_gruppe', 'entity_id') %}
+        {% if lys is not none %}
+          {% set på = lys | select('is_state', 'on') | list | count %}
+          {{ på }}
+        {% else %}
+          0
+        {% endif %}
+      unit_of_measurement: "lys"
+      icon: mdi:lightbulb-group
+
+#########################################
+#                                       #
+#         KLIMA SENSOR                  #
+#     Temperatur, fukt og luftkvalitet  #
+#                                       #
+#########################################
+
+- trigger:
+    - trigger: event
+      event_type: bubble_card_update_modules
+  sensor:
+    - name: "Bubble Card Modules"
+      state: "saved"
+      icon: "mdi:puzzle"
+      attributes:
+        modules: "{{ trigger.event.data.modules }}"
+        last_updated: "{{ trigger.event.data.last_updated }}"
+
+#########################################
+#                                       #
+#              TODO LISTER              #
+#                                       #
+#########################################
+
+- trigger:
+    - platform: state
+      entity_id: todo.mysmarthome
+    - platform: homeassistant
+      event: start
+    - platform: time_pattern
+      minutes: /10
+  action:
+    - service: todo.get_items
+      target:
+        entity_id: todo.mysmarthome
+      response_variable: tasks
+  sensor:
+    - name: Todo MySmartHome
+      unique_id: todo_mysmarthome
+      state: >
+        {{ tasks['todo.mysmarthome']['items'] | count() }}
+      attributes:
+        tasks: >
+          {{ tasks['todo.mysmarthome']['items'] | list }}
+
+- trigger:
+    - platform: state
+      entity_id: todo.mysmarthome_las
+    - platform: homeassistant
+      event: start
+    - platform: time_pattern
+      minutes: /10
+  action:
+    - service: todo.get_items
+      target:
+        entity_id: todo.mysmarthome_las
+      response_variable: tasks
+  sensor:
+    - name: Todo MySmartHome Las
+      unique_id: todo_mysmarthome_las
+      state: >
+        {{ tasks['todo.mysmarthome_las']['items'] | count() }}
+      attributes:
+        tasks: >
+          {{ tasks['todo.mysmarthome_las']['items'] | list }}
+
+#########################################
+#                                       #
+#         ENERGI KOSTNADSSENSORER       #
+#         Cost Hour, Day, Monthly       #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Fastpris 40 øre med nettleie og MVA"
+      unique_id: fastpris_40_med_nettleie_og_mva
+      unit_of_measurement: "øre/kWh"
+      state_class: measurement
+      state: >
+        {% set fastpris = 40.0 %}
+        {% set day_cost = states('input_number.grid_day_hourly_cost') | float(0) %}
+        {% set night_cost = states('input_number.grid_night_hourly_cost') | float(0) %}
+        {% set hour = now().hour %}
+        {% if 22 <= hour or hour < 6 %}
+          {% set nettleie = night_cost %}
+        {% else %}
+          {% set nettleie = day_cost %}
+        {% endif %}
+        {% set total_uten_mva = fastpris + nettleie %}
+        {{ (total_uten_mva * 1.25) | round(2) }}
+
+#########################################
+#                                       #
+#         TIBBER & NORGESPRIS           #
+#                                       #
+#########################################
+
+- trigger:
+    - trigger: time_pattern
+      minutes: "0"
+    - trigger: homeassistant
+      event: start
+  action:
+    - action: tibber.get_prices
+      data:
+        end: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d 23:59:59') }}"
+      response_variable: tibber_data
+  sensor:
+    - name: Strømpris Norgespris
+      unique_id: strompris_norgespris_kalkulert
+      unit_of_measurement: "NOK/kWh"
+      state_class: measurement
+      icon: mdi:cash-100
+      state: >
+        {% set fastpris = 0.50 %}
+        {% set nettleie_dag = 0.37 %}
+        {% set nettleie_natt = 0.22 %}
+        {% set t = now() %}
+        {% set er_helg = t.isoweekday() > 5 %}
+        {% set er_dagtid = t.hour >= 6 and t.hour < 22 %}
+        {% if er_helg or not er_dagtid %}
+          {{ (fastpris + nettleie_natt) | round(4) }}
+        {% else %}
+          {{ (fastpris + nettleie_dag) | round(4) }}
+        {% endif %}
+      attributes:
+        data: >
+          {% set utdata = namespace(priser=[]) %}
+          {% set fastpris = 0.50 %}
+          {% set nettleie_dag = 0.37 %}
+          {% set nettleie_natt = 0.22 %}
+          {% if tibber_data is defined and tibber_data['prices'] is defined %}
+            {% set key = tibber_data['prices'] | list | first %}
+            {% for intervall in tibber_data['prices'][key] %}
+              {% set t = intervall.start_time | as_datetime | as_local %}
+              {% set er_helg = t.isoweekday() > 5 %}
+              {% set er_dagtid = t.hour >= 6 and t.hour < 22 %}
+              {% if er_helg or not er_dagtid %}
+                {% set total = fastpris + nettleie_natt %}
+              {% else %}
+                {% set total = fastpris + nettleie_dag %}
+              {% endif %}
+              {% set utdata.priser = utdata.priser + [{
+                'start_time': intervall.start_time, 
+                'price_per_kwh': total | round(4)
+              }] %}
+            {% endfor %}
+          {% endif %}
+          {{ utdata.priser }}
+
+#########################################
+#                                       #
+#         KALENDER SENSORER             #
+#                                       #
+#########################################
+
+- trigger:
+    - platform: time_pattern
+      minutes: "/15"
+    - platform: homeassistant
+      event: start
+  action:
+    - service: calendar.get_events
+      target:
+        entity_id: calendar.akademiet_timeplan
+      data:
+        duration:
+          days: 30
+      response_variable: calendar_events
+  sensor:
+    - name: "Kalender Akademiet"
+      unique_id: kalender_akademiet
+      icon: mdi:calendar
+      state: >
+        {% if calendar_events is defined and 'calendar.akademiet_timeplan' in calendar_events %}
+          {{ calendar_events['calendar.akademiet_timeplan'].events | length }}
+        {% else %}
+          0
+        {% endif %}
+      attributes:
+        events: >
+          {% if calendar_events is defined and 'calendar.akademiet_timeplan' in calendar_events %}
+            {{ calendar_events['calendar.akademiet_timeplan'].events }}
+          {% else %}
+            []
+          {% endif %}
+
+- trigger:
+    - platform: time_pattern
+      minutes: "/15"
+    - platform: homeassistant
+      event: start
+  action:
+    - action: calendar.get_events
+      target:
+        entity_id:
+          - calendar.sebastian_kristo_no
+      data:
+        duration:
+          days: 30
+      response_variable: calendar_events
+  sensor:
+    - name: Sebastian Kalender
+      unique_id: sebastian_kalender
+      icon: mdi:calendar
+      state: "{{ calendar_events['calendar.sebastian_kristo_no'].events | count() }}"
+      attributes:
+        events: "{{ calendar_events['calendar.sebastian_kristo_no'].events }}"
+
+- trigger:
+    - platform: time_pattern
+      minutes: "/15"
+    - platform: homeassistant
+      event: start
+  action:
+    - action: calendar.get_events
+      target:
+        entity_id:
+          - calendar.helligdager_i_norge
+      data:
+        duration:
+          days: 30
+      response_variable: calendar_events
+  sensor:
+    - name: Helidager I Norge
+      unique_id: helidager_i_norge
+      icon: mdi:calendar
+      state: "{{ calendar_events['calendar.helligdager_i_norge'].events | count() }}"
+      attributes:
+        events: "{{ calendar_events['calendar.helligdager_i_norge'].events }}"
+
+#########################################
+#                                       #
+#         DAGLIG STRØMRAPPORT           #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Daglig Strømrapport"
+      unique_id: daglig_stromrapport
+      state: >
+        {% set forbruk = states('sensor.strommaler_powercalc_energy_daily') | float(0) %}
+        {% set kostnad = states('sensor.um_daily_cost_strommaler') | float(0) %}
+        {% set lys_forbruk = states('sensor.lys_energy_daily') | float(0) %}
+        {% set lys_kostnad = states('sensor.um_daily_cost_lights') | float(0) %}
+        {% set oppvarming_forbruk = states('sensor.oppvarming_energy_daily') | float(0) %}
+        {% set oppvarming_kostnad = states('sensor.um_daily_cost_oppvarming_kurs') | float(0) %}
+        {% set dag = now().day - 1 %}
+        {% set eksempler = [
+          "å stå i dusjen i " ~ (forbruk / 9) | round(1) ~ " timer 🚿",
+          "å kjøre elbil " ~ (forbruk / 0.2) | round(0) ~ " km 🚗⚡",
+          "å koke " ~ (forbruk / 0.12) | round(0) ~ " liter vann 💧☕",
+          "å bruke en hårføner i " ~ (forbruk / 1.5) | round(1) ~ " timer 💨",
+          "å se på TV i " ~ (forbruk / 0.1) | round(0) ~ " timer 📺",
+          "å kjøre vaskemaskinen " ~ (forbruk / 1.0) | round(0) ~ " ganger 👕",
+          "å grille med en elektrisk grill i " ~ (forbruk / 2.0) | round(1) ~ " timer 🍔",
+          "å kjøre oppvaskmaskinen " ~ (forbruk / 1.2) | round(0) ~ " ganger 🍽️",
+          "å lade en mobiltelefon " ~ (forbruk / 0.005) | round(0) ~ " ganger 📱",
+          "å kjøre en varmepumpe i " ~ (forbruk / 1.0) | round(0) ~ " timer ❄️🔥",
+          "å bruke en kaffetrakter i " ~ (forbruk / 0.8) | round(0) ~ " timer ☕",
+          "å steke pizza i ovnen " ~ (forbruk / 2.0) | round(0) ~ " ganger 🍕",
+          "å kjøre en tørketrommel " ~ (forbruk / 3.0) | round(0) ~ " ganger 👚",
+          "å kjøre en PC i " ~ (forbruk / 0.25) | round(0) ~ " timer 💻",
+          "å kjøre en el-sykkel " ~ (forbruk / 0.5) | round(0) ~ " mil 🚴⚡",
+          "å lade et Tesla-batteri til " ~ (forbruk / 75) | round(1) ~ " % 🔋",
+          "å bruke et strykejern i " ~ (forbruk / 2.4) | round(1) ~ " timer 👔",
+          "å kjøre en airfryer i " ~ (forbruk / 1.5) | round(1) ~ " timer 🍟",
+          "å spille Playstation i " ~ (forbruk / 0.2) | round(0) ~ " timer 🎮",
+          "å bruke en elektrisk peis i " ~ (forbruk / 1.8) | round(1) ~ " timer 🔥",
+          "å kjøre en mikrobølgeovn i " ~ (forbruk / 1.2) | round(1) ~ " timer 🍲",
+          "å kjøre en støvsuger i " ~ (forbruk / 1.0) | round(1) ~ " timer 🧹",
+          "å bruke en elektrisk vifte i " ~ (forbruk / 0.05) | round(0) ~ " timer 🌬️",
+          "å bruke en projektor i " ~ (forbruk / 0.3) | round(0) ~ " timer 📽️",
+          "å bruke en kjøkkenmaskin i " ~ (forbruk / 0.4) | round(0) ~ " timer 🍞",
+          "å bruke en vannkoker " ~ (forbruk / 0.1) | round(0) ~ " ganger ☕",
+          "å bruke en varmeovn i " ~ (forbruk / 2.0) | round(1) ~ " timer 🔥",
+          "å kjøre en gaming-PC i " ~ (forbruk / 0.5) | round(0) ~ " timer 🖥️",
+          "å lade en el-sparkesykkel " ~ (forbruk / 0.3) | round(0) ~ " ganger 🛴⚡",
+          "å bruke en elektrisk tannbørste i " ~ (forbruk / 0.002) | round(0) ~ " år 😁",
+          "å drive en liten kjøleskap i " ~ (forbruk / 0.1) | round(0) ~ " dager 🧊"
+        ] %}
+        📊Forbruk i dag: {{ forbruk | round(2) }} kWh. Lys: {{ lys_forbruk | round(2) }} kWh ({{ lys_kostnad | round(2) }} kr) 💰Kostnad i dag: {{ kostnad | round(2) }} kr. Oppvarming: {{ oppvarming_forbruk | round(2) }} kWh ({{ oppvarming_kostnad | round(2) }} kr) Ditt forbruk i dag tilsvarer {{ eksempler[dag] if dag < eksempler | length else eksempler[0] }}
+
+#########################################
+#                                       #
+#         LYS TELLER MYSMARTHOME        #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Bad Speillampe Teller MySmartHome"
+      unique_id: bad_speillampe_teller_mysmarthome
+      state: >
+        {% set lys = expand('light.bad_speillampe') %}
+        {% set pa = lys | selectattr('state','eq','on') | list | count %}
+        {% set av = lys | selectattr('state','eq','off') | list | count %}
+        {{ pa }} på - {{ av }} av
+
+    - name: "Do Speillampe Teller MySmartHome"
+      unique_id: do_speillampe_teller_mysmarthome
+      state: >
+        {% set lys = expand('light.do_speillampe') %}
+        {% set pa = lys | selectattr('state','eq','on') | list | count %}
+        {% set av = lys | selectattr('state','eq','off') | list | count %}
+        {{ pa }} på - {{ av }} av
+
+    - name: "Stue Lys Teller MySmartHome"
+      unique_id: stue_lys_teller_mysmarthome
+      state: >
+        {% set group = state_attr('light.stue_lys', 'entity_id') %}
+        {% if not group %}
+          Ingen lys funnet
+        {% else %}
+          {% set lys = expand(group) %}
+          {% set pa = lys | selectattr('state','eq','on') | list | count %}
+          {% set av = lys | selectattr('state','eq','off') | list | count %}
+          {{ pa }} på - {{ av }} av
+        {% endif %}
+
+    - name: "Kjøkken Lys Teller MySmartHome"
+      unique_id: kjokken_lys_teller_mysmarthome
+      state: >
+        {% set group = state_attr('light.kjokken_lys', 'entity_id') %}
+        {% if not group %}
+          Ingen lys funnet
+        {% else %}
+          {% set lys = expand(group) %}
+          {% set pa = lys | selectattr('state','eq','on') | list | count %}
+          {% set av = lys | selectattr('state','eq','off') | list | count %}
+          {{ pa }} på - {{ av }} av
+        {% endif %}
+
+    - name: "Inngang Lys Teller MySmartHome"
+      unique_id: inngang_lys_teller_mysmarthome
+      state: >
+        {% set group = state_attr('light.inngang_lys', 'entity_id') %}
+        {% if not group %}
+          Ingen lys funnet
+        {% else %}
+          {% set lys = expand(group) %}
+          {% set pa = lys | selectattr('state','eq','on') | list | count %}
+          {% set av = lys | selectattr('state','eq','off') | list | count %}
+          {{ pa }} på - {{ av }} av
+        {% endif %}
+
+    - name: "Ute Lys Teller MySmartHome"
+      unique_id: ute_lys_teller_mysmarthome
+      state: >
+        {% set lys = expand('light.ute_lys_gruppe') %}
+        {% set pa = lys | selectattr('state','eq','on') | list | count %}
+        {% set av = lys | selectattr('state','eq','off') | list | count %}
+        {{ pa }} på - {{ av }} av
+
+    - name: "Rune Lys Teller MySmartHome"
+      unique_id: rune_lys_teller_mysmarthome
+      state: >
+        {% set lys = expand('light.rune_soverom_lys') %}
+        {% set pa = lys | selectattr('state','eq','on') | list | count %}
+        {% set av = lys | selectattr('state','eq','off') | list | count %}
+        {{ pa }} på - {{ av }} av
+
+    - name: "Cybele Lys Teller MySmartHome"
+      unique_id: cybele_lys_teller_mysmarthome
+      state: >
+        {% set lys = expand('light.cybele_soverom_lys') %}
+        {% set pa = lys | selectattr('state','eq','on') | list | count %}
+        {% set av = lys | selectattr('state','eq','off') | list | count %}
+        {{ pa }} på - {{ av }} av
+
+    - name: "Soverom Lys Teller MySmartHome"
+      unique_id: soverom_lys_teller_mysmarthome
+      state: >
+        {% set group = state_attr('light.soverom_lys', 'entity_id') %}
+        {% if not group %}
+          Ingen lys funnet
+        {% else %}
+          {% set lys = expand(group) %}
+          {% set pa = lys | selectattr('state','eq','on') | list | count %}
+          {% set av = lys | selectattr('state','eq','off') | list | count %}
+          {{ pa }} på - {{ av }} av
+        {% endif %}
+
+    - name: "Pult Lys Teller MySmartHome"
+      unique_id: pult_lys_teller_mysmarthome
+      state: >
+        {% set lys = expand('light.pult_lys') %}
+        {% set pa = lys | selectattr('state','eq','on') | list | count %}
+        {% set av = lys | selectattr('state','eq','off') | list | count %}
+        {{ pa }} på - {{ av }} av
+
+#########################################
+#                                       #
+#              PERSONER                 #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Antall personer hjemme"
+      unique_id: sensor_antall_personer_hjemme
+      state: >
+        {{ expand('person.sebastian_kristo_jemtland', 'person.cybele_kristo', 'person.rune_jemtland') | selectattr('state','eq','home') | list | count }}
+      unit_of_measurement: "personer"
+    - name: "Antall personer hjemme Homey"
+      unique_id: sensor_antall_personer_hjemme_homey
+      state: >
+        {{ expand('switch.cybele_posisjon_hjemme_borte', 'switch.sebastian_posisjon_hjemme_borte', 'switch.rune_posisjon_hjemme_borte') | selectattr('state','eq','on') | list | count }}
+      unit_of_measurement: "personer"
+#########################################
+#                                       #
+#         UNIFI GATEWAY SENSORER        #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "UDMP Uptime"
+      unique_id: udmp_uptime
+      state: >
+        {{ ((as_timestamp(now()) | int) - (state_attr('sensor.unifi_gateway_wan', 'gw_system-stats')['uptime'] | int(0)) + 3600) | timestamp_custom('%d.%m.%Y @ %-H:%M') }}
+      icon: mdi:clock-outline
+
+    - name: "UDMP CPU"
+      unique_id: udmp_cpu_usage
+      unit_of_measurement: "%"
+      state: >
+        {{ state_attr('sensor.unifi_gateway_wan', 'gw_system-stats')['cpu'] | int(0) }}
+      icon: mdi:cpu-64-bit
+
+    - name: "UDMP Memory"
+      unique_id: udmp_mem_usage
+      unit_of_measurement: "%"
+      state: >
+        {{ state_attr('sensor.unifi_gateway_wan', 'gw_system-stats')['mem'] | int(0) }}
+      icon: mdi:memory
+
+    - name: "UDMP External IP"
+      unique_id: udmp_ip
+      state: >
+        {{ state_attr('sensor.unifi_gateway_wan', 'wan_ip') }}
+      icon: mdi:ip-network
+
+    - name: "UDMP WAN Received"
+      unique_id: udmp_wan_received
+      state: >
+        {{ state_attr('sensor.unifi_gateway_wan', 'rx_bytes-r') | filesizeformat() }}
+      icon: mdi:download
+
+    - name: "UDMP WAN Sent"
+      unique_id: udmp_wan_sent
+      state: >
+        {{ state_attr('sensor.unifi_gateway_wan', 'tx_bytes-r') | filesizeformat() }}
+      icon: mdi:upload
+
+    - name: "UDMP Speedtest Last Run"
+      unique_id: udmp_speedtest_lastrun
+      state: >
+        {{ (((as_timestamp(now()) - state_attr('sensor.unifi_gateway_www', 'speedtest_lastrun') | int(0)) | int(0) - 3600) | timestamp_custom("%H:%M")) }}
+      icon: mdi:speedometer
+
+    - name: "UDMP Speedtest Upload"
+      unique_id: udmp_speedtest_upload
+      unit_of_measurement: "Mbps"
+      state: >
+        {{ state_attr('sensor.unifi_gateway_www', 'xput_up') | float(0) }}
+      icon: mdi:upload-network
+
+    - name: "UDMP Speedtest Download"
+      unique_id: udmp_speedtest_download
+      unit_of_measurement: "Mbps"
+      state: >
+        {{ state_attr('sensor.unifi_gateway_www', 'xput_down') | float(0) }}
+      icon: mdi:download-network
+
+    - name: "UDMP Speedtest Ping"
+      unique_id: udmp_speedtest_ping
+      unit_of_measurement: "ms"
+      state: >
+        {{ state_attr('sensor.unifi_gateway_www', 'speedtest_ping') | float(0) }}
+      icon: mdi:wan
+
+    - name: "UDMP LAN Clients"
+      unique_id: udmp_lan_clients
+      state: >
+        {{ state_attr('sensor.unifi_gateway_lan', 'num_user') | int(0) }}
+      icon: mdi:ethernet
+
+    - name: "UDMP WLAN Clients"
+      unique_id: udmp_wlan_clients
+      state: >
+        {{ state_attr('sensor.unifi_gateway_wlan', 'num_user') | int(0) }}
+      icon: mdi:wifi
+
+#########################################
+#                                       #
+#         STRØMKOSTNAD BEREGNINGER      #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Strømpris ink. avgifter"
+      unique_id: stromtotal
+      unit_of_measurement: "NOK/kWh"
+      state: >
+        {% set today = now() %}
+        {% set next_month = (today + timedelta(days=32)).replace(day=1) %}
+        {% set start_of_month = today.replace(day=1) %}
+        {% set numberofdays = (next_month - start_of_month).days %}
+        {% set fastledd = (375 / numberofdays) / 24 %}
+        {% if (now().hour > 5 and now().hour < 23) and (now().weekday() < 5) %}
+          {% set energiledd = 0.52 + fastledd %}
+        {% else %}
+          {% set energiledd = 0.45 + fastledd %}
+        {% endif %}
+        {% set stromstotteLevel = 0.9125 %}
+        {% if states('sensor.totalpris_strompris_kroner') | float(0) > stromstotteLevel %}
+          {% set stromstotte = (states('sensor.totalpris_strompris_kroner') | float(0) - stromstotteLevel) * 0.9 %}
+        {% else %}
+          {% set stromstotte = 0 %}
+        {% endif %}
+        {% set total = states('sensor.totalpris_strompris_kroner') | float(0) - stromstotte + energiledd %}
+        {{ total | round(2) }}
+
+    - name: "Totalpris Strømpris Kroner"
+      unique_id: totalpris_strompris_kroner
+      unit_of_measurement: "kr/kWh"
+      device_class: monetary
+      state: >
+        {% set pris_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {{ (pris_ore / 100) | round(4) }}
+
+    - name: "Cost to run PC per hour"
+      unique_id: pc_electricity_cost
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 0.08) | round(2) }}
+
+    - name: "Cost to run TV (1h)"
+      unique_id: tv_cost_1h
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 0.15) | round(2) }}
+
+    - name: "Cost to charge laptop (1h, 65W)"
+      unique_id: laptop_charge_cost_1h
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 0.065) | round(2) }}
+
+    - name: "Cost to run dishwasher for 45 minutes"
+      unique_id: dishwasher_cost_45min
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 1.6) | round(2) }}
+
+    - name: "Cost to run washingmachine for 45 minutes"
+      unique_id: washing_machine_cost_1h
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 2.0) | round(2) }}
+
+    - name: "Cost to run vacuum cleaner (30min)"
+      unique_id: vacuum_cleaner_cost_30min
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 0.5) | round(2) }}
+
+    - name: "Cost to heat water heater (1h)"
+      unique_id: water_heater_cost_1h
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 2.2) | round(2) }}
+
+    - name: "Cost to run panel heater (1h, 1000W)"
+      unique_id: panel_heater_cost_1h
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 1.0) | round(2) }}
+
+    - name: "Cost of hot shower (20min)"
+      unique_id: shower_cost_20min
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 0.67) | round(2) }}
+
+    - name: "Cost to bake a pizza (20min oven)"
+      unique_id: pizza_oven_cost_20min
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 0.67) | round(2) }}
+
+    - name: "Cost for 2 kWh"
+      unique_id: electricity_cost_2kwh
+      unit_of_measurement: "NOK"
+      state: >
+        {{ (states('sensor.totalpris_strompris_kroner') | float(0) * 2) | round(2) }}
+
+#########################################
+#                                       #
+#         DATO OG HILSENER              #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Greeting"
+      unique_id: greeting
+      state: >
+        {% set current_hour = now().hour %}
+        {% if current_hour >= 6 and current_hour < 9 %}
+          God morgen Sebastian
+        {% elif current_hour >= 9 and current_hour < 12 %}
+          God formiddag Sebastian
+        {% elif current_hour >= 12 and current_hour < 18 %}
+          God ettermiddag Sebastian 
+        {% elif current_hour >= 18 and current_hour < 24 %}
+          God kveld Sebastian
+        {% else %}
+          God natt Sebastian
+        {% endif %}
+
+    - name: "Dag"
+      unique_id: dag
+      state: "{{ ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'][now().weekday()] }}"
+
+    - name: "Dato"
+      unique_id: dato
+      state: >
+        {% set months = ['jan', 'feb', 'mars', 'april', 'mai', 'juni', 'juli', 'aug', 'sept', 'okt', 'nov', 'des'] %}
+        {{ now().day | string ~ ' ' ~ months[now().month-1] }}
+
+#########################################
+
+#########################################
+#                                       #
+#         Norgespris                    #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Hourly Gang Og Bod Kurs Cost Norgespris"
+      unique_id: cost_hour_gang_og_bod_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.gang_og_bod_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.gang_og_bod_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Vaskerom Og Do Kurs Cost Norgespris"
+      unique_id: cost_hour_vaskerom_og_do_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.vaskegang_og_do_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.vaskegang_og_do_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Soverom Og Bad Kurs Cost Norgespris"
+      unique_id: cost_hour_soverom_og_bad_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.soverom_og_bad_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.soverom_og_bad_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Vaskemaskin Kurs Cost Norgespris"
+      unique_id: cost_hour_vaskemaskin_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.vaskemaskin_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.vaskemaskin_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Oppvaskmaskin Cost Norgespris"
+      unique_id: cost_hour_oppvaskmaskin_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.oppvaskmaskin_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.oppvaskmaskin_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Strømmåler Cost Norgespris"
+      unique_id: cost_hour_strommaler_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.strommaler_powercalc_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.strommaler_powercalc_energy_hourly') | float(0) %}
+        {% set price_nok = states('sensor.norgespris_pris_na') | float(0) %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Hvitvarer Cost Norgespris"
+      unique_id: cost_hour_hvitvarer_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.hvitvarer_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.hvitvarer_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Data Cost Norgespris"
+      unique_id: cost_hour_data_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.data_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.data_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Lys Cost Norgespris"
+      unique_id: cost_hour_lys_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.lys_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.lys_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Oppvarming Cost Norgespris"
+      unique_id: cost_hour_oppvarming_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.oppvarming_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.oppvarming_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Stue Kurs Cost Norgespris"
+      unique_id: cost_hour_stue_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.stue_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.stue_kurs_energy_hourly') | float(0) %}
+        {% set price_ore_per_kwh = states('sensor.norgespris_pris_na') | float(0) %}
+        {% set price_nok_per_kwh = price_ore_per_kwh / 100 %}
+        {{ (energy * price_nok_per_kwh) | round(2) }}
+
+    - name: "Hourly Varmtvannsbereder Kurs Cost Norgespris"
+      unique_id: cost_hour_varmtvannsbereder_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.varmtvannsbereder_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.varmtvannsbereder_kurs_energy_hourly') | float(0) %}
+        {% set price_ore_per_kwh = states('sensor.norgespris_pris_na') | float(0) %}
+        {% set price_nok_per_kwh = price_ore_per_kwh / 100 %}
+        {{ (energy * price_nok_per_kwh) | round(2) }}
+
+    - name: "Hourly Kjøkken Kurs Cost Norgespris"
+      unique_id: cost_hour_kjokken_kurs_norgespris
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.kjokken_kurs_energy_hourly') and has_value('sensor.norgespris_pris_na') }}
+      state: >
+        {% set energy = states('sensor.kjokken_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.norgespris_pris_na') | float(0) %}
+
+        {{ (energy * price_nok) | round(2) }}
+
+#########################################
+#                                       #
+#         Spotpris.                     #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "VVB Oppvarmet"
+      unique_id: vvb_oppvarmet
+      state: "{{ state_attr('input_datetime.vvb_heater_completed', 'timestamp') | int(0) | timestamp_custom('%d.%m.%y %H:%M') }}"
+      icon: mdi:water-boiler
+
+    - name: "Hourly Gang Og Bod Kurs Cost"
+      unique_id: cost_hour_gang_og_bod_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.gang_og_bod_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.gang_og_bod_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Vaskerom Og Do Kurs Cost"
+      unique_id: cost_hour_vaskerom_og_do_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.vaskegang_og_do_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.vaskegang_og_do_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Soverom Og Bad Kurs Cost"
+      unique_id: cost_hour_soverom_og_bad_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.soverom_og_bad_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.soverom_og_bad_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Vaskemaskin Kurs Cost"
+      unique_id: cost_hour_vaskemaskin_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.vaskemaskin_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.vaskemaskin_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Oppvaskmaskin Cost"
+      unique_id: cost_hour_oppvaskmaskin_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.oppvaskmaskin_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.oppvaskmaskin_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Strømmåler Cost"
+      unique_id: cost_hour_strommaler
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.strommaler_powercalc_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.strommaler_powercalc_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Hvitvarer Cost"
+      unique_id: cost_hour_hvitvarer
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.hvitvarer_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.hvitvarer_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Data Cost"
+      unique_id: cost_hour_data
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.data_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.data_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Lys Cost"
+      unique_id: cost_hour_lys
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.lys_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.lys_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Oppvarming Cost"
+      unique_id: cost_hour_oppvarming_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.oppvarming_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.oppvarming_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Hourly Stue Kurs Cost"
+      unique_id: cost_hour_stue_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.stue_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.stue_kurs_energy_hourly') | float(0) %}
+        {% set price_ore_per_kwh = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok_per_kwh = price_ore_per_kwh / 100 %}
+        {{ (energy * price_nok_per_kwh) | round(2) }}
+
+    - name: "Hourly Varmtvannsbereder Kurs Cost"
+      unique_id: cost_hour_varmtvannsbereder_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.varmtvannsbereder_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.varmtvannsbereder_kurs_energy_hourly') | float(0) %}
+        {% set price_ore_per_kwh = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok_per_kwh = price_ore_per_kwh / 100 %}
+        {{ (energy * price_nok_per_kwh) | round(2) }}
+
+    - name: "Hourly Kjøkken Kurs Cost"
+      unique_id: cost_hour_kjokken_kurs
+      unit_of_measurement: "NOK"
+      state_class: measurement
+      availability: >
+        {{ has_value('sensor.kjokken_kurs_energy_hourly') and has_value('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}
+      state: >
+        {% set energy = states('sensor.kjokken_kurs_energy_hourly') | float(0) %}
+        {% set price_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set price_nok = price_ore / 100 %}
+        {{ (energy * price_nok) | round(2) }}
+
+    - name: "Effektledd"
+      unique_id: effektledd_beregning
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      icon: mdi:transmission-tower
+      state: >
+        {% set t1 = states('input_number.effekt_topp_1') | float(0) %}
+        {% set t2 = states('input_number.effekt_topp_2') | float(0) %}
+        {% set t3 = states('input_number.effekt_topp_3') | float(0) %}
+        {{ ((t1 + t2 + t3) / 3) | round(2) }}
+
+    - name: "Strømmåler Effekt kW"
+      unique_id: strommaler_effekt_kw
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      state: >
+        {{ (states('sensor.strommaler_effekt') | float(0) / 1000) | round(2) }}
+
+    - name: "Varslingsgrense Dynamisk"
+      unique_id: varslingsgrense_dynamisk
+      unit_of_measurement: "kW"
+      icon: mdi:bell-alert
+      state: >
+        {% set effektledd = states('sensor.effektledd') | float(0) %}
+        {% set margin = 0.5 %}
+        {% if effektledd < 2 %}
+          {{ (2 - margin) | round(1) }}
+        {% elif effektledd < 5 %}
+          {{ (5 - margin) | round(1) }}
+        {% elif effektledd < 10 %}
+          {{ (10 - margin) | round(1) }}
+        {% elif effektledd < 15 %}
+          {{ (15 - margin) | round(1) }}
+        {% elif effektledd < 20 %}
+          {{ (20 - margin) | round(1) }}
+        {% else %}
+          25
+        {% endif %}
+
+    - name: "Effektledd Kostnad"
+      unique_id: effektledd_kostnad
+      unit_of_measurement: "kr"
+      icon: mdi:cash
+      state: >
+        {% set effekt = states('sensor.effektledd') | float(0) %}
+        {% if effekt <= 2 %}
+          125
+        {% elif effekt <= 5 %}
+          290
+        {% elif effekt <= 10 %}
+          445
+        {% elif effekt <= 15 %}
+          600
+        {% elif effekt <= 20 %}
+          755
+        {% else %}
+          755
+        {% endif %}
+      attributes:
+        trinn: >
+          {% set effekt = states('sensor.effektledd') | float(0) %}
+          {% if effekt <= 2 %}
+            0-2 kWt
+          {% elif effekt <= 5 %}
+            2-5 kWt
+          {% elif effekt <= 10 %}
+            5-10 kWt
+          {% elif effekt <= 15 %}
+            10-15 kWt
+          {% elif effekt <= 20 %}
+            15-20 kWt
+          {% else %}
+            "Over Trinn 5 (>20 kWt)"
+          {% endif %}
+        effektledd_kw: "{{ states('sensor.effektledd') }}"
+
+    - name: "Norgespris Pris nå"
+      unique_id: norgespris_current_price
+      unit_of_measurement: "kr/kWh"
+      state: >
+        {% set norgespris = 0.539 %}
+        {% set nettleie_day = 0.364 %}
+        {% set nettleie_night_weekend = 0.264 %}
+        {% if now().isoweekday() >= 6 %}
+          {# Weekend #}
+          {{ (norgespris + nettleie_night_weekend) | round(4) }}
+        {% else %}
+          {# Weekday #}
+          {% if now().hour >= 6 and now().hour < 22 %}
+            {# Day #}
+            {{ (norgespris + nettleie_day) | round(4) }}
+          {% else %}
+            {# Night #}
+            {{ (norgespris + nettleie_night_weekend) | round(4) }}
+          {% endif %}
+        {% endif %}
+      attributes:
+        today: >
+          {% set ns = namespace(data=[]) %}
+          {% set norgespris = 0.539 %}
+          {% set nettleie_day = 0.364 %}
+          {% set nettleie_night_weekend = 0.264 %}
+          {% set price_day = (norgespris + nettleie_day) | round(4) %}
+          {% set price_night_weekend = (norgespris + nettleie_night_weekend) | round(4) %}
+          {% set today_start = now().replace(hour=0, minute=0, second=0, microsecond=0) %}
+          {% for hour in range(24) %}
+            {% set start_time = today_start + timedelta(hours=hour) %}
+            {% set end_time = start_time + timedelta(hours=1) %}
+            {% set current_price = 0 %}
+            {% if start_time.isoweekday() >= 6 %}
+              {% set current_price = price_night_weekend %}
+            {% else %}
+              {% if start_time.hour >= 6 and start_time.hour < 22 %}
+                {% set current_price = price_day %}
+              {% else %}
+                {% set current_price = price_night_weekend %}
+              {% endif %}
+            {% endif %}
+            {# Modify the 'data' attribute of the namespace object #}
+            {% set ns.data = ns.data + [{
+              'start': start_time.isoformat(),
+              'end': end_time.isoformat(),
+              'value': current_price
+            }] %}
+          {% endfor %}
+          {# Output the final list from the namespace #}
+          {{ ns.data }}
+        tomorrow: >
+          {% set ns = namespace(data=[]) %}
+          {% set norgespris = 0.539 %}
+          {% set nettleie_day = 0.364 %}
+          {% set nettleie_night_weekend = 0.264 %}
+          {% set price_day = (norgespris + nettleie_day) | round(4) %}
+          {% set price_night_weekend = (norgespris + nettleie_night_weekend) | round(4) %}
+          {% set tomorrow_start = now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1) %}
+          {% for hour in range(24) %}
+            {% set start_time = tomorrow_start + timedelta(hours=hour) %}
+            {% set end_time = start_time + timedelta(hours=1) %}
+            {% set current_price = 0 %}
+            {% if start_time.isoweekday() >= 6 %}
+              {% set current_price = price_night_weekend %}
+            {% else %}
+              {% if start_time.hour >= 6 and start_time.hour < 22 %}
+                {% set current_price = price_day %}
+              {% else %}
+                {% set current_price = price_night_weekend %}
+              {% endif %}
+            {% endif %}
+            {# Modify the 'data' attribute of the namespace object #}
+            {% set ns.data = ns.data + [{
+              'start': start_time.isoformat(),
+              'end': end_time.isoformat(),
+              'value': current_price
+            }] %}
+          {% endfor %}
+          {# Output the final list from the namespace #}
+          {{ ns.data }}
+
+    - name: "Neste Effektledd Terskel"
+      unique_id: neste_effektledd_terskel
+      unit_of_measurement: "kW"
+      icon: mdi:alert-circle
+      state: >
+        {% set effekt = states('sensor.effektledd') | float(0) %}
+        {% if effekt <= 2 %}
+          2
+        {% elif effekt <= 5 %}
+          5
+        {% elif effekt <= 10 %}
+          10
+        {% elif effekt <= 15 %}
+          15
+        {% elif effekt <= 20 %}
+          20
+        {% else %}
+          20
+        {% endif %}
+      attributes:
+        margin: >
+          {% set effekt = states('sensor.effektledd') | float(0) %}
+          {% set terskel = states('sensor.neste_effektledd_terskel') | float(0) %}
+          {{ (terskel - effekt) | round(2) }}
+        neste_kostnad: >
+          {% set effekt = states('sensor.effektledd') | float(0) %}
+          {% if effekt <= 2 %}
+            "190 kr (Trinn 2)"
+          {% elif effekt <= 5 %}
+            "300 kr (Trinn 3)"
+          {% elif effekt <= 10 %}
+            "410 kr (Trinn 4)"
+          {% elif effekt <= 15 %}
+            "520 kr (Trinn 5)"
+          {% else %}
+            "Allerede på høyeste trinn"
+          {% endif %}
+
+    - name: "Effektledd Trinn"
+      unique_id: effektledd_trinn
+      icon: mdi:transmission-tower
+      state: >
+        {% set kw = states('sensor.strommaler_effekt') | float(0) / 1000 %}
+        {% if kw <= 2 %}
+          Trinn 1 · 0–2 kW
+        {% elif kw <= 5 %}
+          Trinn 2 · 2–5 kW
+        {% elif kw <= 10 %}
+          Trinn 3 · 5–10 kW
+        {% elif kw <= 15 %}
+          Trinn 4 · 10–15 kW
+        {% elif kw <= 20 %}
+          Trinn 5 · 15–20 kW
+        {% else %}
+          Trinn 6 · over 20 kW
+        {% endif %}
+      attributes:
+        trinn_nummer: >
+          {% set kw = states('sensor.strommaler_effekt') | float(0) / 1000 %}
+          {% if kw <= 2 %}1
+          {% elif kw <= 5 %}2
+          {% elif kw <= 10 %}3
+          {% elif kw <= 15 %}4
+          {% elif kw <= 20 %}5
+          {% else %}6{% endif %}
+        navaerende_kw: >
+          {{ (states('sensor.strommaler_effekt') | float(0) / 1000) | round(2) }}
+        maned_snittpeak_kw: >
+          {{ states('sensor.effektledd') | float(0) | round(2) }}
+        maned_trinn: >
+          {% set kw = states('sensor.effektledd') | float(0) %}
+          {% if kw <= 2 %}Trinn 1 · 0–2 kW
+          {% elif kw <= 5 %}Trinn 2 · 2–5 kW
+          {% elif kw <= 10 %}Trinn 3 · 5–10 kW
+          {% elif kw <= 15 %}Trinn 4 · 10–15 kW
+          {% elif kw <= 20 %}Trinn 5 · 15–20 kW
+          {% else %}Trinn 6 · over 20 kW{% endif %}
+        maned_kostnad_kr: >
+          {{ states('sensor.effektledd_kostnad') | float(0) | int }}
+        margin_til_neste_kw: >
+          {% set kw = states('sensor.effektledd') | float(0) %}
+          {% if kw <= 2 %}{{ (2 - kw) | round(2) }}
+          {% elif kw <= 5 %}{{ (5 - kw) | round(2) }}
+          {% elif kw <= 10 %}{{ (10 - kw) | round(2) }}
+          {% elif kw <= 15 %}{{ (15 - kw) | round(2) }}
+          {% elif kw <= 20 %}{{ (20 - kw) | round(2) }}
+          {% else %}0{% endif %}
+
+    - name: "Strømregning Denne Måneden"
+      unique_id: stromregning_denne_maneden
+      unit_of_measurement: "NOK"
+      device_class: monetary
+      state: >
+        {% set forbruk = states('sensor.strommaler_powercalc_energy_monthly') | float(0) %}
+        {% set pris_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set pris_kr = pris_ore / 100 %}
+        {{ (forbruk * pris_kr) | round(2) }}
+
+    # Estimert total månedskostnad basert på forbruk så langt
+    - name: "Estimert Månedlig Strømregning"
+      unique_id: estimert_manedlig_stromregning
+      unit_of_measurement: "NOK"
+      device_class: monetary
+      state: >
+        {% set forbruk_hittil = states('sensor.strommaler_powercalc_energy_monthly') | float(0) %}
+        {% set dag_i_maned = now().day %}
+        {% set dager_i_maned = (now().replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1) %}
+        {% set dager_totalt = dager_i_maned.day %}
+        {% set pris_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set pris_kr = pris_ore / 100 %}
+        {% set estimert_forbruk = (forbruk_hittil / dag_i_maned) * dager_totalt %}
+        {{ (estimert_forbruk * pris_kr) | round(2) }}
+
+    - name: "Eksperementel Estimert Månedlig Strømregning"
+      unique_id: eksperementel_estimert_manedlig_stromregning
+      unit_of_measurement: "NOK"
+      device_class: monetary
+      state: >
+        {% set forbruk_hittil = states('sensor.strommaler_powercalc_energy_monthly') | float(0) %}
+        {% set dag_i_maned = now().day %}
+        {% set maned = now().month %}
+        {% set dager_i_maned = (now().replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1) %}
+        {% set dager_totalt = dager_i_maned.day %}
+        {% set pris_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set pris_kr = pris_ore / 100 %}
+
+        {# Ditt faktiske historiske forbruk per måned #}
+        {% set historisk_forbruk = {
+          1: 2300,
+          2: 1900,
+          3: 1800,
+          4: 1200,
+          5: 1100,
+          6: 700,
+          7: 650,
+          8: 850,
+          9: 850,
+          10: 1300,
+          11: 1800,
+          12: 2200
+        } %}
+
+        {# Beregn vektet estimat #}
+        {% if dag_i_maned <= 5 %}
+          {# Tidlig i måneden: bruk historisk data #}
+          {% set estimert_forbruk = historisk_forbruk[maned] %}
+        {% elif dag_i_maned <= 15 %}
+          {# Midten av måneden: 50% faktisk trend, 50% historisk #}
+          {% set daglig_snitt = forbruk_hittil / dag_i_maned %}
+          {% set trend_estimat = daglig_snitt * dager_totalt %}
+          {% set historisk_estimat = historisk_forbruk[maned] %}
+          {% set estimert_forbruk = (trend_estimat * 0.5) + (historisk_estimat * 0.5) %}
+        {% else %}
+          {# Slutten av måneden: bruk faktisk trend #}
+          {% set daglig_snitt = forbruk_hittil / dag_i_maned %}
+          {% set estimert_forbruk = daglig_snitt * dager_totalt %}
+        {% endif %}
+
+        {{ (estimert_forbruk * pris_kr) | round(2) }}
+
+    # Hjelpesensor: Estimert månedlig forbruk i kWh
+    - name: "Eksperementel Estimert Månedlig Forbruk"
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state: >
+        {% set forbruk_hittil = states('sensor.strommaler_powercalc_energy_monthly') | float(0) %}
+        {% set dag_i_maned = now().day %}
+        {% set maned = now().month %}
+        {% set dager_i_maned = (now().replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1) %}
+        {% set dager_totalt = dager_i_maned.day %}
+
+        {% set historisk_forbruk = {
+          1: 2300, 2: 1900, 3: 1800, 4: 1200, 5: 1100, 6: 700,
+          7: 650, 8: 850, 9: 850, 10: 1300, 11: 1800, 12: 2200
+        } %}
+
+        {% if dag_i_maned <= 5 %}
+          {% set estimert_forbruk = historisk_forbruk[maned] %}
+        {% elif dag_i_maned <= 15 %}
+          {% set daglig_snitt = forbruk_hittil / dag_i_maned %}
+          {% set trend_estimat = daglig_snitt * dager_totalt %}
+          {% set historisk_estimat = historisk_forbruk[maned] %}
+          {% set estimert_forbruk = (trend_estimat * 0.5) + (historisk_estimat * 0.5) %}
+        {% else %}
+          {% set daglig_snitt = forbruk_hittil / dag_i_maned %}
+          {% set estimert_forbruk = daglig_snitt * dager_totalt %}
+        {% endif %}
+
+        {{ estimert_forbruk | round(1) }}
+
+    - name: "Total Fastledd År"
+      unique_id: total_fastledd_aar
+      unit_of_measurement: "kr"
+      device_class: monetary
+      icon: mdi:transmission-tower
+      state: >
+        {% set maneder = now().month %}
+        {% set total = 0 %}
+        {% if maneder >= 1 %}{% set total = total + states('input_number.fastledd_januar') | float(0) %}{% endif %}
+        {% if maneder >= 2 %}{% set total = total + states('input_number.fastledd_februar') | float(0) %}{% endif %}
+        {% if maneder >= 3 %}{% set total = total + states('input_number.fastledd_mars') | float(0) %}{% endif %}
+        {% if maneder >= 4 %}{% set total = total + states('input_number.fastledd_april') | float(0) %}{% endif %}
+        {% if maneder >= 5 %}{% set total = total + states('input_number.fastledd_mai') | float(0) %}{% endif %}
+        {% if maneder >= 6 %}{% set total = total + states('input_number.fastledd_juni') | float(0) %}{% endif %}
+        {% if maneder >= 7 %}{% set total = total + states('input_number.fastledd_juli') | float(0) %}{% endif %}
+        {% if maneder >= 8 %}{% set total = total + states('input_number.fastledd_august') | float(0) %}{% endif %}
+        {% if maneder >= 9 %}{% set total = total + states('input_number.fastledd_september') | float(0) %}{% endif %}
+        {% if maneder >= 10 %}{% set total = total + states('input_number.fastledd_oktober') | float(0) %}{% endif %}
+        {% if maneder >= 11 %}{% set total = total + states('input_number.fastledd_november') | float(0) %}{% endif %}
+        {% if maneder >= 12 %}{% set total = total + states('input_number.fastledd_desember') | float(0) %}{% endif %}
+        {{ total | round(2) }}
+
+    - name: "Total Strømregning År med Historikk"
+      unique_id: total_stromregning_aar_historikk
+      unit_of_measurement: "kr"
+      device_class: monetary
+      icon: mdi:currency-usd
+      state: >
+        {% set stromkostnad = states('sensor.um_yearly_cost_strommaler') | float(0) %}
+        {% set fastledd = states('sensor.total_fastledd_ar') | float(0) %}
+        {{ (stromkostnad + fastledd) | round(2) }}
+      attributes:
+        strømkostnad: "{{ states('sensor.um_yearly_cost_strommaler') | float(0) | round(2) }}"
+        fastledd_totalt: "{{ states('sensor.total_fastledd_ar') | float(0) | round(2) }}"
+
+    - name: "Total Strømregning Måned"
+      unique_id: total_stromregning_maaned
+      unit_of_measurement: "kr"
+      device_class: monetary
+      icon: mdi:currency-usd
+      state: >
+        {% set stromkostnad = states('sensor.um_monthly_cost_strommaler') | float(0) %}
+        {% set fastledd = states('sensor.effektledd_kostnad') | float(0) %}
+        {{ (stromkostnad + fastledd) | round(2) }}
+      attributes:
+        strømkostnad: "{{ states('sensor.um_monthly_cost_strommaler') | float(0) | round(2) }}"
+        fastledd_effekt: "{{ states('sensor.effektledd_kostnad') | float(0) | round(2) }}"
+        effektledd_kw: "{{ states('sensor.effektledd') | float(0) }}"
+        effektledd_trinn: "{{ state_attr('sensor.effektledd_kostnad', 'trinn') }}"
+
+    - name: "Gjennomsnitt Strømregning per Måned"
+      unique_id: gjennomsnitt_stromregning_per_maaned
+      unit_of_measurement: "kr"
+      device_class: monetary
+      icon: mdi:chart-line
+      state: >
+        {% set total_aar = states('sensor.total_stromregning_aar') | float(0) %}
+        {% set maneder = now().month %}
+        {% if maneder > 0 %}
+          {{ (total_aar / maneder) | round(2) }}
+        {% else %}
+          0
+        {% endif %}
+
+    #########################################
+    #                                       #
+    #         Norgespris                    #
+    #                                       #
+    #########################################
+
+    - name: "Total Strømregning År med Historikk Norgespris"
+      unique_id: total_stromregning_aar_historikk_norgespris
+      unit_of_measurement: "kr"
+      device_class: monetary
+      icon: mdi:currency-usd
+      state: >
+        {% set stromkostnad = states('sensor.um_yearly_cost_strommaler_norgespris') | float(0) %}
+        {% set fastledd = states('sensor.total_fastledd_ar') | float(0) %}
+        {{ (stromkostnad + fastledd) | round(2) }}
+      attributes:
+        strømkostnad: "{{ states('sensor.um_yearly_cost_strommaler_norgespris') | float(0) | round(2) }}"
+        fastledd_totalt: "{{ states('sensor.total_fastledd_ar') | float(0) | round(2) }}"
+
+    - name: "Total Strømregning Måned Norgespris"
+      unique_id: total_stromregning_maaned_norgespris
+      unit_of_measurement: "kr"
+      device_class: monetary
+      icon: mdi:currency-usd
+      state: >
+        {% set stromkostnad = states('sensor.um_monthly_cost_strommaler_norgespris') | float(0) %}
+        {% set fastledd = states('sensor.effektledd_kostnad') | float(0) %}
+        {{ (stromkostnad + fastledd) | round(2) }}
+      attributes:
+        strømkostnad: "{{ states('sensor.um_monthly_cost_strommaler_norgespris') | float(0) | round(2) }}"
+        fastledd_effekt: "{{ states('sensor.effektledd_kostnad') | float(0) | round(2) }}"
+        effektledd_kw: "{{ states('sensor.effektledd') | float(0) }}"
+        effektledd_trinn: "{{ state_attr('sensor.effektledd_kostnad', 'trinn') }}"
+
+    - name: "Gjennomsnitt Strømregning per Måned Norgespris"
+      unique_id: gjennomsnitt_stromregning_per_maaned_norgespris
+      unit_of_measurement: "kr"
+      device_class: monetary
+      icon: mdi:chart-line
+      state: >
+        {% set total_aar = states('sensor.total_stromregning_aar') | float(0) %}
+        {% set maneder = now().month %}
+        {% if maneder > 0 %}
+          {{ (total_aar / maneder) | round(2) }}
+        {% else %}
+          0
+        {% endif %}
+
+    - name: "Norgespris Besparelse Siste Time"
+      unique_id: norgespris_savings_last_hour
+      unit_of_measurement: "NOK"
+      device_class: monetary
+      state: >
+        {% set forbruk_kwh = states('sensor.strommaler_powercalc_energy_hourly') | float(0) %}
+        {% set spotpris_ore = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) %}
+        {% set norgespris_ore = states('sensor.norgespris_pris_na') | float(0) * 100 %}
+        {% set spotpris_nok = spotpris_ore / 100 %}
+        {% set norgespris_nok = norgespris_ore / 100 %}
+        {% set spotpris_kostnad = forbruk_kwh * spotpris_nok %}
+        {% set norgespris_kostnad = forbruk_kwh * norgespris_nok %}
+        {{ (spotpris_kostnad - norgespris_kostnad) | round(2) }}
+      attributes:
+        forbruk_kwh: "{{ states('sensor.strommaler_powercalc_energy_hourly') }}"
+        spotpris_ore_kwh: "{{ states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') }}"
+        norgespris_ore_kwh: "{{ states('sensor.norgespris_pris_na') | float(0) * 100 }}"
+        spotpris_kostnad: >
+          {% set forbruk = states('sensor.strommaler_powercalc_energy_hourly') | float(0) %}
+          {% set pris = states('sensor.totalpris_inkludert_grid_el_company_og_stromstotte') | float(0) / 100 %}
+          {{ (forbruk * pris) | round(2) }}
+        norgespris_kostnad: >
+          {% set forbruk = states('sensor.strommaler_powercalc_energy_hourly') | float(0) %}
+          {% set pris = states('sensor.norgespris_pris_na') | float(0) %}
+          {{ (forbruk * pris) | round(2) }}
+
+- sensor:
+    - name: "Fast strømpris"
+      unique_id: fast_strompris_50_ore
+      unit_of_measurement: "NOK/kWh"
+      state: 0.50
+      device_class: monetary
+      state_class: measurement
+- sensor:
+    - name: "Nettleie pris nå"
+      unique_id: nettleie_current_price
+      unit_of_measurement: "kr/kWh"
+      state: >
+        {% set nettleie_day = 0.4315 %}
+        {% set nettleie_night_weekend = 0.3315 %}
+
+        {% if now().isoweekday() >= 6 %}
+          {# Weekend #}
+          {{ (nettleie_night_weekend) | round(4) }}
+        {% else %}
+          {# Weekday #}
+          {% if now().hour >= 6 and now().hour < 22 %}
+            {# Day #}
+            {{ (nettleie_day) | round(4) }}
+          {% else %}
+            {# Night #}
+            {{ (nettleie_night_weekend) | round(4) }}
+          {% endif %}
+        {% endif %}
+- sensor:
+    - name: "Stromregning Estimate"
+      unique_id: stromregning_estimate
+      unit_of_measurement: "kr"
+      state: |
+        {% set norgespris = states('sensor.strommaler_strompris_monthly_energy_cost_3') | float %}
+        {% set nettleie = states('sensor.strommaler_nettleie_monthly_energy_cost_2') | float %}
+        {% set fastledd = states('sensor.fastledd_kostnad') | float %}
+        {{ (norgespris + fastledd + nettleie + 39) | round(2) }}
+      attributes:
+        strom: |
+          {{ (states('sensor.strommaler_strompris_monthly_energy_cost_3') | float) | round(2) }}
+        nettleie: |
+          {{ (states('sensor.strommaler_nettleie_monthly_energy_cost_2') | float) | round(2) }}
+        spotpris: |
+          {{ (states('sensor.strommaler_strompris_monthly_energy_cost_3') | float) | round(2) }}
+        regning: |
+          {% set spotpris = states('sensor.strommaler_strompris_monthly_energy_cost_3') | float %}
+          {% set fastledd = states('sensor.fastledd_kostnad') | float %}
+          {% set nettleie = states('sensor.strommaler_nettleie_monthly_energy_cost_2') | float %}
+          {{ (spotpris + fastledd + nettleie + 39) | round(2) }}
+
+- sensor:
+    # sensor.fastledd — månedlig snitttopp i kW (alias for sensor.effektledd)
+    - name: "Fastledd"
+      unique_id: fastledd
+      icon: mdi:transmission-tower
+      unit_of_measurement: "kW"
+      state: >
+        {{ states('sensor.effektledd') | float(0) | round(2) }}
+
+    # sensor.fastledd_kostnad — månedlig kapasitetsledd-kostnad basert på korrekt snitttopp
+    # Elvia-priser 2025: ≤2→25, ≤5→190, ≤10→300, ≤15→410, ≤20→520, >20→660 kr/mnd
+    - name: "Fastledd Kostnad"
+      unique_id: fastledd_kostnad
+      icon: mdi:currency-usd
+      unit_of_measurement: "kr"
+      device_class: monetary
+      state: >
+        {% set p = states('sensor.effektledd') | float(0) %}
+        {% if p <= 2 %}
+          25
+        {% elif p <= 5 %}
+          190
+        {% elif p <= 10 %}
+          300
+        {% elif p <= 15 %}
+          410
+        {% elif p <= 20 %}
+          520
+        {% else %}
+          660
+        {% endif %}
+
+# batteries
+- sensor:
+    - name: "Battery low alert"
+      unique_id: battery_low_alert
+      state: >
+        {{ states.sensor
+            | selectattr('entity_id', 'search', '_battery_plus$')
+            | map(attribute='state')
+            | map('float', default=101)
+            | select('lt', 30)
+            | list | count > 0 }}
+      icon: mdi:battery-check-outline
+      attributes:
+        low_battery_entities: >
+          {% set matching_sensors = states.sensor | selectattr('entity_id', 'search', '_battery_plus$') %}
+          {% set intermediate_data = namespace(items=[]) %}
+          {% for sensor in matching_sensors %}
+            {% set state_val = sensor.state | float(none) %}
+            {% if state_val is not none %}
+              {% set intermediate_data.items = intermediate_data.items + [{'id': sensor.entity_id, 'val': state_val}] %}
+            {% endif %}
+          {% endfor %}
+          {{ intermediate_data.items | selectattr('val', 'lt', 30) | map(attribute='id') | list }}
+
+# Dashboard helpers
+- sensor:
+    - name: "Dashboard Active Card"
+      unique_id: dashboard_active_card
+      icon: mdi:view-dashboard
+      state: >
+        {% if is_state('sensor.ovn_machine_state', 'running') %}
+          oven
+        {% elif is_state('vacuum.sir_sweeps_a_lot', 'cleaning') %}
+          vacuum
+        {% elif is_state('sensor.smart_oppvaskmaskin_state', 'running') %}
+          dishwasher
+        {% elif is_state('sensor.smart_vaskemaskin_state', 'running') %}
+          washing_machine
+        {% elif is_state('media_player.stue_tv', 'on') %}
+          tv
+        {% else %}
+          vacuum
+        {% endif %}
+- sensor:
+    - name: "Dashboard index"
+      unique_id: dashboard_index
+      state: Index
+      attributes:
+        events: >
+          {% set events = state_attr('sensor.kalender_akademiet', 'events') %}
+          {% set count = events | selectattr('start', 'match',
+          now().strftime('%Y-%m-%d')) | list | length %} {{ "ingen" if count == 0
+          else count }} {{ "avtale" if count == 1 else "avtaler" }}
+        strom: "{{states('sensor.norgespris_pris_na') | float(0) | round(2)}}"
+        weather: >
+          {{ state_attr('sensor.weather_forecast_v3', 'current').condition }} og {{
+          state_attr('sensor.weather_forecast_v3', 'current').temperature }}
+
+    - name: "Dashboard Soverom"
+      unique_id: dashboard_soverom
+      state: Oppe
+      attributes:
+        temp: "{{ states('sensor.meter_pro_temperature') | round(1)}}"
+        hum: "{{ states('sensor.meter_pro_humidity') | round(1)}}"
+        door: >
+          {% if is_state('binary_sensor.vindusensor_hoyre_door', 'off') %}
+          lukket
+          {% else %}
+          åpen
+          {% endif %}
+
+        lights_on: >
+          {% set target_lights = [
+            'light.nattlampe',
+            'light.nattbordlampe',
+            'light.vindulampe',
+            'light.overskap',
+            'light.sideskap',
+            'light.benk_benkbelysning',
+            'light.sebastian_taklampe'
+          ] %}
+
+          {% set lights_on = expand(target_lights) | selectattr('state', 'eq', 'on') | list | count %}
+          {% set lights_off = target_lights | count - lights_on %}
+
+          {{ lights_on }}
+        lights_off: >
+          {% set target_lights = [
+            'light.nattlampe',
+            'light.nattbordlampe',
+            'light.vindulampe',
+            'light.overskap',
+            'light.sideskap',
+            'light.benk_benkbelysning',
+            'light.sebastian_taklampe'
+          ] %}
+
+          {% set lights_on = expand(target_lights) | selectattr('state', 'eq', 'on') | list | count %}
+          {% set lights_off = target_lights | count - lights_on %}
+
+          {{ lights_off }}
+
+- sensor:
+    - name: "Dashboard hallway"
+      unique_id: dashboard_hallway
+      state: Hallway
+      attributes:
+        temp: "{{ states('sensor.inngang_temp_og_fukt_temperatur') | round(1)}}"
+        hum: "{{ states('sensor.inngang_temp_og_fukt_luftfuktighet') | round(1)}}"
+        lights_on: >
+          {% set target_lights = [
+            'light.inngang_bordlampe',
+            'light.mellomgang_taklampe',
+            'light.trappelys',
+            'light.trapperekkverk',
+            'light.inngang_taklampe'
+          ] %}
+
+          {% set lights_on = expand(target_lights) | selectattr('state', 'eq', 'on') | list | count %}
+          {% set lights_off = target_lights | count - lights_on %}
+
+          {{ lights_on }}
+        lights_off: >
+          {% set target_lights = [
+            'light.inngang_bordlampe',
+            'light.mellomgang_taklampe',
+            'light.trappelys',
+            'light.trapperekkverk',
+            'light.inngang_taklampe'
+          ] %}
+          {% set lights_on = expand(target_lights) | selectattr('state', 'eq', 'on') | list | count %}
+          {% set lights_off = target_lights | count - lights_on %}
+          {{ lights_off }}
+        door_lock: >
+          {{ states('lock.dorlas_blatann') | replace('locked', 'låst') | replace('unlocked', 'ulåst') }}
+        door: >
+          {% if is_state('binary_sensor.inngang_dorsensor_door', 'off') %}
+          lukket
+          {% else %}
+          åpen
+          {% endif %}
+- sensor:
+    - name: "Dashboard office"
+      unique_id: dashboard_office
+      state: Office
+      attributes:
+        temp: "{{ states('sensor.d_day_darling_cpu_temperature') | round(1)}}"
+        strom: "{{ states('sensor.do_server_effekt') | round(1)}}"
+        uptime: >
+          {% set uptime = states('sensor.server_uptime_formatted') %}
+          {# 1. Split by comma, take the first 2 items, and join them back with a comma and space #}
+          {% set short = uptime.split(',')[:2] | join(', ') %}
+
+          {# 2. Translate to Norwegian using a filter chain #}
+          {{ short 
+            | replace("years", "år")
+            | replace("year", "år")
+            | replace("months", "måneder")
+            | replace("month", "måned")
+            | replace("weeks", "uker")
+            | replace("week", "uke")
+            | replace("days", "dager")
+            | replace("day", "dag")
+            | replace("hours", "timer")
+            | replace("hour", "time")
+            | replace("minutes", "minutter")
+            | replace("minute", "minutt")
+          }}
+
+- sensor:
+    - name: "Server Uptime Formatted"
+      unique_id: server_uptime_formatted
+      state: >
+        {% set uptime = states('sensor.d_day_darling_uptime') %}
+        {% set uptime_dt = as_datetime(uptime) %}
+        {% if uptime_dt %}
+          {% set delta = now() - uptime_dt %}
+          {% set days = delta.days %}
+          {% set hours = (delta.seconds // 3600) %}
+          {% if days > 0 %}
+            {{ days }} dag{% if days != 1 %}er{% endif %}, {{ hours }} time{% if hours != 1 %}r{% endif %}
+          {% else %}
+            {{ hours }} time{% if hours != 1 %}r{% endif %}
+          {% endif %}
+        {% else %}
+          Ukjent
+        {% endif %}
+      icon: mdi:server
+
+- trigger:
+    - platform: time_pattern
+      minutes: /15
+    - platform: homeassistant
+      event: start
+  action:
+    - service: weather.get_forecasts
+      target:
+        entity_id: weather.forecast_home
+      data:
+        type: daily
+      response_variable: daily_forecast
+    - service: weather.get_forecasts
+      target:
+        entity_id: weather.forecast_home
+      data:
+        type: hourly
+      response_variable: hourly_forecast
+  sensor:
+    - name: Weather Forecast V3
+      unique_id: weather_forecast_v3
+      state: "{{ now().isoformat() }}"
+      attributes:
+        current: >
+          {% set current = hourly_forecast['weather.forecast_home'].forecast[0] %}
+          {% from 'weather_translate.jinja' import translate_condition %}
+          {% set t = current.temperature | float %}
+          {% set k = (current.wind_speed | float) / 3.6 %}
+          {% set v = (k/1000*60*60) %}
+          {% set a = 13.12 + 0.6215*t - 11.37*(v**0.16) + 0.3965*t*(v**0.16) %}
+          {% set direction = ['N','NNØ','NØ','ØNØ','Ø','ØSØ','SØ','SSØ','S','SSV','SV','VSV','V','VNV','NV','NNV','N'] %}
+          {% set degree = (current.wind_bearing | float) %}
+          {% from 'weather_wind.jinja' import get_wind_description %}
+          {% set weather = current.condition %}
+          {
+            "condition": "{{ translate_condition(weather) | trim }}",
+            "icon": "{% if is_state('sun.sun', 'above_horizon') %}{{ '/local/ic/weather_icons/met/' + weather + '.png' }}{% else %}{{ '/local/ic/weather_icons/met/' + weather + '_night.png' }}{% endif %}",         
+            "temperature": {{ current.temperature }},
+            "wind_speed": {{ (current.wind_speed | float / 3.6) | round(1) }},
+            "wind_gust_speed": {{ current.wind_gust_speed }},
+            "wind_bearing": {{ current.wind_bearing }},
+            "wind_dir": "{{ direction[((degree+11.25)/22.5)|int] }}",
+            "wind_desc": "{{ get_wind_description(current.wind_speed | float) | trim | replace('\n', '') }}",
+            "precipitation": {{ current.precipitation }},
+            "precipitation_probability": {{ current.precipitation_probability }},
+            "humidity": {{ current.humidity }},
+            "cloud_coverage": {{ current.cloud_coverage }},
+            "feels_like": {{ a | round(1) }}
+            {% if current.uv_index is defined and current.uv_index is not none %},
+            "uv_index": {{ current.uv_index }}
+            {% endif %}
+          }
+
+        today: >
+          {% set today = daily_forecast['weather.forecast_home'].forecast[0] %}
+          {% from 'weather_translate.jinja' import translate_condition %}
+          {% set t = today.temperature | float %}
+          {% set k = (today.wind_speed | float) / 3.6 %}
+          {% set v = (k/1000*60*60) %}
+          {% set a = 13.12 + 0.6215*t - 11.37*(v**0.16) + 0.3965*t*(v**0.16) %}
+          {% set direction = ['N','NNØ','NØ','ØNØ','Ø','ØSØ','SØ','SSØ','S','SSV','SV','VSV','V','VNV','NV','NNV','N'] %}
+          {% set degree = (today.wind_bearing | float) %}
+          {% from 'weather_wind.jinja' import get_wind_description %}
+          {% set weather = today.condition %}
+          {
+            "condition": "{{ translate_condition(weather) | trim }}",
+            "icon": "{{ '/local/ic/weather_icons/met/' + weather + '.png' }}",
+            "temperature": {{ today.temperature }},
+            "templow": {{ today.templow }},
+            "wind_speed": {{ (today.wind_speed | float / 3.6) | round(1) }},
+            "wind_gust_speed": {{ today.wind_gust_speed }},
+            "wind_bearing": {{ today.wind_bearing }},
+            "wind_dir": "{{ direction[((degree+11.25)/22.5)|int] }}",
+            "wind_desc": "{{ get_wind_description(today.wind_speed | float) | trim | replace('\n', '') }}",
+            "precipitation": {{ today.precipitation }},
+            "precipitation_probability": {{ today.precipitation_probability }},
+            "humidity": {{ today.humidity }},
+            "feels_like": {{ a | round(1) }}
+            {% if today.uv_index is defined and today.uv_index is not none %},
+            "uv_index": {{ today.uv_index }}
+            {% endif %}
+          }
+
+        forecast: >
+          [
+            {% for i in range(1, 6) %}
+              {% set day = daily_forecast['weather.forecast_home'].forecast[i] %}
+              {% from 'weather_translate.jinja' import translate_condition %}
+              {% from 'weather_wind.jinja' import get_wind_description %}
+              {% set weather = day.condition %}
+              {
+                "datetime": "{{ day.datetime }}",
+                "condition": "{{ translate_condition(weather) | trim }}",
+                "icon": "{{ '/local/ic/weather_icons/met/' + weather + '.png' }}",
+                "temperature": {{ day.temperature }}
+                {% if day.precipitation is defined and day.precipitation is not none %},
+                "precipitation": {{ day.precipitation }}
+                {% endif %}
+                {% if day.wind_speed is defined and day.wind_speed is not none %},
+                "wind_speed": {{ (day.wind_speed | float / 3.6) | round(1) }},
+                "wind_desc": "{{ get_wind_description(day.wind_speed | float) | trim | replace('\n', '') }}"
+                {% endif %}
+                {% if day.uv_index is defined and day.uv_index is not none %},
+                "uv_index": {{ day.uv_index }}
+                {% endif %}
+              }{{ "," if not loop.last else "" }}
+            {% endfor %}
+          ]
+        hourly: >
+          [
+            {% for i in range(1, hourly_forecast['weather.forecast_home'].forecast | length) %}
+              {% set hour = hourly_forecast['weather.forecast_home'].forecast[i] %}
+              {% set weather = hour.condition %}
+              {
+                "datetime": "{{ hour.datetime }}",
+                "icon": "{% set is_day = hour.datetime.split('T')[1].split(':')[0] | int > 6 and hour.datetime.split('T')[1].split(':')[0] | int < 20 %}{% if is_day %}{{ '/local/ic/weather_icons/met/' + weather + '.png' }}{% else %}{{ '/local/ic/weather_icons/met/' + weather + '_night.png' }}{% endif %}",
+                "temperature": {{ hour.temperature }},
+                "wind_speed": {{ (hour.wind_speed | float / 3.6) | round(1) }}
+                {% if hour.precipitation is defined and hour.precipitation is not none %},
+                "precipitation": {{ hour.precipitation }}
+                {% endif %}
+              }{{ "," if not loop.last else "" }}
+            {% endfor %}
+          ]
+
+- sensor:
+    - name: "Sebastian"
+      unique_id: "birthdays_sebastian"
+      unit_of_measurement: "dager"
+      state: >
+        {% set today = now().date() %}
+        {% set birthday = strptime('2007-05-27', '%Y-%m-%d').date() %}
+        {% set this_year = today.replace(month=birthday.month, day=birthday.day) %}
+        {% set next_birthday = this_year if this_year >= today else this_year.replace(year=today.year + 1) %}
+        {{ (next_birthday - today).days }}
+      attributes:
+        date_of_birth: "2007-05-27"
+        friendly_name: "Sebastian"
+        age: >
+          {% set today = now().date() %}
+          {% set birthday = strptime('2007-05-27', '%Y-%m-%d').date() %}
+          {{ today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day)) }}
+
+    - name: "Cybele"
+      unique_id: "birthdays_cybele"
+      unit_of_measurement: "dager"
+      state: >
+        {% set today = now().date() %}
+        {% set birthday = strptime('1964-06-29', '%Y-%m-%d').date() %}
+        {% set this_year = today.replace(month=birthday.month, day=birthday.day) %}
+        {% set next_birthday = this_year if this_year >= today else this_year.replace(year=today.year + 1) %}
+        {{ (next_birthday - today).days }}
+      attributes:
+        date_of_birth: "1964-06-29"
+        friendly_name: "Cybele"
+        age: >
+          {% set today = now().date() %}
+          {% set birthday = strptime('1964-06-29', '%Y-%m-%d').date() %}
+          {{ today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day)) }}
+
+    - name: "Laila"
+      unique_id: "birthdays_laila"
+      unit_of_measurement: "dager"
+      state: >
+        {% set today = now().date() %}
+        {% set birthday = strptime('1945-05-02', '%Y-%m-%d').date() %}
+        {% set this_year = today.replace(month=birthday.month, day=birthday.day) %}
+        {% set next_birthday = this_year if this_year >= today else this_year.replace(year=today.year + 1) %}
+        {{ (next_birthday - today).days }}
+      attributes:
+        date_of_birth: "1945-05-02"
+        friendly_name: "Laila"
+        age: >
+          {% set today = now().date() %}
+          {% set birthday = strptime('1945-05-02', '%Y-%m-%d').date() %}
+          {{ today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day)) }}
+
+    - name: "Rune"
+      unique_id: "birthdays_rune"
+      unit_of_measurement: "dager"
+      state: >
+        {% set today = now().date() %}
+        {% set birthday = strptime('1954-11-22', '%Y-%m-%d').date() %}
+        {% set this_year = today.replace(month=birthday.month, day=birthday.day) %}
+        {% set next_birthday = this_year if this_year >= today else this_year.replace(year=today.year + 1) %}
+        {{ (next_birthday - today).days }}
+      attributes:
+        date_of_birth: "1954-11-22"
+        friendly_name: "Rune"
+        age: >
+          {% set today = now().date() %}
+          {% set birthday = strptime('1954-11-22', '%Y-%m-%d').date() %}
+          {{ today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day)) }}
+
+# todos
+- trigger:
+    - platform: state
+      entity_id:
+        - todo.gjoremal
+        - todo.sma_oppgaver
+    - platform: homeassistant
+      event: start
+    - platform: time_pattern
+      minutes: "/10"
+  action:
+    - service: todo.get_items
+      target:
+        entity_id:
+          - todo.gjoremal
+          - todo.sma_oppgaver
+      response_variable: tasks
+  sensor:
+    - name: "Todo Oppgaver Count"
+      unique_id: todo_oppgaver_count
+      # I set the state to the total count of pending tasks, which is usually more useful than "tmp"
+      state: >
+        {{ 
+          (tasks['todo.sma_oppgaver']['items'] | selectattr('status', 'eq', 'needs_action') | list | count) + 
+          (tasks['todo.gjoremal']['items'] | selectattr('status', 'eq', 'needs_action') | list | count)
+        }}
+      attributes:
+        sma_oppgaver_completed: >
+          {{ tasks['todo.sma_oppgaver']['items'] | selectattr('status', 'eq', 'completed') | list | count }}
+        sma_oppgaver_pending: >
+          {{ tasks['todo.sma_oppgaver']['items'] | selectattr('status', 'eq', 'needs_action') | list | count }}
+        store_oppgaver_completed: >
+          {{ tasks['todo.gjoremal']['items'] | selectattr('status', 'eq', 'completed') | list | count }}
+        store_oppgaver_pending: >
+          {{ tasks['todo.gjoremal']['items'] | selectattr('status', 'eq', 'needs_action') | list | count }}
+      icon: mdi:clipboard-check-outline
+
+# Date and time
+- sensor:
+    - name: "Tid"
+      state: >
+        {{ now().strftime('%H') }}:{{ now().strftime('%M')}}
+      attributes:
+        hh: "{{ now().strftime('%H') }}"
+        mm: "{{ now().strftime('%M')}}"
+        greeting: >
+          {% set hour = now().hour %}
+          {% if hour >= 5 and hour < 12 %}
+            God morgen!
+          {% elif hour >= 12 and hour < 17 %}
+            God ettermiddag!
+          {% elif hour >= 17 and hour < 23 %}
+            God kveld!
+          {% else %}
+            God natt!
+          {% endif %}
+- sensor:
+    - name: "Dato"
+      state: >
+        {% set months = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'] %} {{ now().day | string + '. ' + months[now().month-1]}}
+- sensor:
+    - name: "Maned"
+      state: >
+        {% set months = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'] %} {{ months[now().month-1]}}
+- sensor:
+    - name: "Dag"
+      state: >
+        {{ ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'][now().weekday()] }}
+- sensor:
+    - name: "Ukedagag"
+      state: >
+        {{ now().weekday() }}
+
+- sensor:
+    - name: "Ute AirQuality"
+      unique_id: "ute_airquality"
+      state: >
+        {% set co2_value = states('sensor.oslo_carbon_monoxide') | float(default=4500) %}
+        {% set pm25_value = states('sensor.oslo_pm2_5') | float(default=225.4) %}
+        {% set temp_value = states('sensor.hus_temperature') | float(default=21) %}
+        {% set humidity_value = states('sensor.hus_fuktighet') | float(default=45) %}
+
+        {# CO2 Score calculation #}
+        {% if co2_value >= 4500 %}
+          {% set co2_score = 0 %}
+        {% elif co2_value <= 400 %}
+          {% set co2_score = 100 %}
+        {% else %}
+          {% set co2_score = ((4500 - co2_value) / (4500 - 400)) * 100 %}
+        {% endif %}
+
+        {# PM2.5 Score calculation #}
+        {% if pm25_value >= 225.4 %}
+          {% set pm25_score = 0 %}
+        {% elif pm25_value <= 10 %}
+          {% set pm25_score = 100 %}
+        {% else %}
+          {% set pm25_score = ((225.4 - pm25_value) / (225.4 - 10)) * 100 %}
+        {% endif %}
+
+        {# Temperature scoring #}
+        {% set ideal_temp = 21 %}
+        {% set temp_deviation = (temp_value - ideal_temp) | abs %}
+        {% if temp_deviation >= 10 %}
+          {% set temp_score = 0 %}
+        {% else %}
+          {% set temp_score = 100 - (temp_deviation * 10) %}
+        {% endif %}
+
+        {# Humidity scoring #}
+        {% if humidity_value < 30 %}
+          {% set humidity_score = (humidity_value / 30) * 100 %}
+        {% elif humidity_value > 60 %}
+          {% set humidity_score = ((100 - humidity_value) / 40) * 100 %}
+        {% else %}
+          {% set humidity_score = 100 %}
+        {% endif %}
+
+        {# Final weighted score - adjusted weights to include VOC #}
+        {{ ((co2_score * 0.25 + pm25_score * 0.25 + temp_score * 0.125 + humidity_score * 0.125) | round(1)) }}
+
+- sensor:
+    - name: "Ute AirQuality Alt"
+      unique_id: "ute_airquality_alt"
+      state: >
+        {% set co2 = states('sensor.oslo_carbon_monoxide') | float %}
+        {% set nox = states('sensor.oslo_nitrogen_dioxide') | float %}
+        {% set pm25 = states('sensor.oslo_pm2_5') | float %}
+        {% set pm10 = states('sensor.oslo_pm10') | float %}
+
+        {% set scores = [] %}
+
+        {# CO2 Score #}
+        {% if co2 <= 599 %}
+          {% set scores = scores + [90] %}
+        {% elif co2 <= 999 %}
+          {% set scores = scores + [70] %}
+        {% elif co2 <= 1499 %}
+          {% set scores = scores + [50] %}
+        {% elif co2 <= 2499 %}
+          {% set scores = scores + [30] %}
+        {% else %}
+          {% set scores = scores + [10] %}
+        {% endif %}
+
+        {# NOx Score #}
+        {% if nox <= 49 %}
+          {% set scores = scores + [90] %}
+        {% elif nox <= 99 %}
+          {% set scores = scores + [70] %}
+        {% elif nox <= 299 %}
+          {% set scores = scores + [50] %}
+        {% elif nox <= 349 %}
+          {% set scores = scores + [30] %}
+        {% else %}
+          {% set scores = scores + [10] %}
+        {% endif %}
+
+
+
+        {# PM2.5 Score #}
+        {% if pm25 <= 20 %}
+          {% set scores = scores + [90] %}
+        {% elif pm25 <= 50 %}
+          {% set scores = scores + [70] %}
+        {% elif pm25 <= 90 %}
+          {% set scores = scores + [50] %}
+        {% elif pm25 <= 140 %}
+          {% set scores = scores + [30] %}
+        {% else %}
+          {% set scores = scores + [10] %}
+        {% endif %}
+
+        {# PM10 Score #}
+        {% if pm10 <= 30 %}
+          {% set scores = scores + [90] %}
+        {% elif pm10 <= 75 %}
+          {% set scores = scores + [70] %}
+        {% elif pm10 <= 125 %}
+          {% set scores = scores + [50] %}
+        {% elif pm10 <= 200 %}
+          {% set scores = scores + [30] %}
+        {% else %}
+          {% set scores = scores + [10] %}
+        {% endif %}
+
+        {{ (scores | sum / scores | length) | round(1) }}
+
+#########################################
+#                                       #
+#          UMÅLT FORBRUK                #
+#    (Total minus kartlagte laster)     #
+#    Inkluderer elbil-lading og         #
+#    ikke-målte panelovner (Sebastian,  #
+#    Rune). Spike > 2kW = elbil.        #
+#                                       #
+#########################################
+
+- sensor:
+    - name: "Umålt forbruk"
+      unique_id: toten_umalt_forbruk
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      state: >
+        {% set total   = states('sensor.strommaler_effekt')             | float(0) %}
+        {% set vvb     = states('sensor.varmtvannsbereder_effekt')       | float(0) %}
+        {% set vp      = states('sensor.varmepumpe_stikkontakt_power')   | float(0) %}
+        {% set nett    = states('sensor.nettverk_stikkontakt_effekt')    | float(0) %}
+        {% set tv      = states('sensor.tv_skap_stikkontakt_effekt')     | float(0) %}
+        {% set pult    = states('sensor.pult_stikkontakt_effekt')        | float(0) %}
+        {% set frost   = states('sensor.frostvakt_effekt')               | float(0) %}
+        {% set hankle  = states('sensor.hanklevarmer_effekt')            | float(0) %}
+        {% set ute     = states('sensor.ute_stikk_garasje_power')        | float(0) %}
+        {% set bad_gv  = states('sensor.bad_toten_gulvvarme_power')      | float(0) %}
+        {% set kjok_gv = states('sensor.kjokken_toten_gulvvarme_power')  | float(0) %}
+        {% set inn_gv  = states('sensor.inngang_gulvvarme_power')        | float(0) %}
+        {% set cybele  = states('sensor.cybele_panelovn_current_power')  | float(0) %}
+        {% set known   = vvb + vp + nett + tv + pult + frost + hankle + ute + bad_gv + kjok_gv + inn_gv + cybele %}
+        {{ [total - known, 0] | max | round(0) }}

@@ -10,6 +10,7 @@ import {
 import {
   MOTION_TIMEOUTS,
   TRANSITIONS,
+  CLIMATE_SETTINGS,
 } from "./settings-constants";
 import {
   SettingSection,
@@ -17,6 +18,7 @@ import {
   NumberRow,
   // BooleanRow, NumericInputRow — uncomment as you add domain-specific settings
 } from "../components/controls/SettingControls";
+import { InfrastructureCard } from "../components/cards/InfrastructureCard";
 
 const ADVANCED_KEY = "ha-dashboard:settings-advanced";
 
@@ -77,8 +79,20 @@ export function SettingsView() {
         </SubSection>
       </SettingSection>
 
-      {/* Domain-specific sections are added here as you configure your setup.
-          See settings-constants.ts for examples and the pattern to follow. */}
+      {/* Infrastructure */}
+      <SettingSection title="Infrastruktur" icon="mdi:server-network">
+        <InfrastructureCard />
+      </SettingSection>
+
+      {/* Climate */}
+      <SettingSection title="Klima" icon="mdi:thermometer" defaultExpanded>
+        <SubSection title="Temperaturinnstillinger">
+          {CLIMATE_SETTINGS.map((c) => (
+            <NumberRow key={c.entity} config={c} onChange={setNumber} />
+          ))}
+        </SubSection>
+      </SettingSection>
+      <div className="h-20" />
     </div>
   );
 }

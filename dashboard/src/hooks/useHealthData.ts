@@ -5,8 +5,12 @@ import { parseNumericState } from "../lib/format";
 import {
   SYSTEM_CPU,
   SYSTEM_RAM,
-  SYSTEM_DISK,
-  SYSTEM_LAST_BOOT,
+  SYSTEM_DISK_USED,
+  SYSTEM_DISK_MAX,
+  SYSTEM_UPTIME_H,
+  SYSTEM_NET_IN,
+  SYSTEM_NET_OUT,
+  SYSTEM_VM_STATUS,
 } from "../lib/entities";
 import {
   EXCLUDED_BATTERY_PLATFORMS,
@@ -45,6 +49,11 @@ export interface HealthData {
   cpu: string | undefined;
   ram: string | undefined;
   disk: string | undefined;
+  diskUsedGb: number | null;
+  diskMaxGb: number | null;
+  netIn: number | null;
+  netOut: number | null;
+  vmStatus: string | undefined;
   batteries: BatteryInfo[];
   criticalBatteries: BatteryInfo[];
   staleSensors: { name: string; hoursAgo: number }[];
@@ -59,9 +68,21 @@ export function useHealthData(): HealthData {
   const platformMap = useEntityPlatforms();
 
   const cpu = entities[SYSTEM_CPU]?.state;
-  const ram = entities[SYSTEM_RAM]?.state;
-  const disk = entities[SYSTEM_DISK]?.state;
-  const lastBoot = entities[SYSTEM_LAST_BOOT]?.state;
+  // RAM: Proxmox may report >100% due to rounding — cap at 100
+  const ramRaw = parseNumericState(entities[SYSTEM_RAM]?.state);
+  const ram = ramRaw !== null ? String(Math.min(100, ramRaw)) : undefined;
+  // Disk: compute % from used/max GB
+  const diskUsedGb  = parseNumericState(entities[SYSTEM_DISK_USED]?.state);
+  const diskMaxGb   = parseNumericState(entities[SYSTEM_DISK_MAX]?.state);
+  const diskPct     = diskUsedGb !== null && diskMaxGb !== null && diskMaxGb > 0
+    ? (diskUsedGb / diskMaxGb) * 100 : null;
+  const disk = diskPct !== null ? String(diskPct) : undefined;
+  // Uptime from hours
+  const uptimeH     = parseNumericState(entities[SYSTEM_UPTIME_H]?.state);
+  // Network MB/s
+  const netIn       = parseNumericState(entities[SYSTEM_NET_IN]?.state);
+  const netOut      = parseNumericState(entities[SYSTEM_NET_OUT]?.state);
+  const vmStatus    = entities[SYSTEM_VM_STATUS]?.state;
 
   // Discover all battery sensors, filtered by platform
   const batteries = useMemo(() => {
@@ -128,23 +149,18 @@ export function useHealthData(): HealthData {
     return events;
   }, [entities]);
 
-  // Format uptime
+  // Format uptime from hours value
   const uptimeText = useMemo(() => {
-    if (!lastBoot) return null;
-    const bootTime = new Date(lastBoot);
-    if (isNaN(bootTime.getTime())) return null;
-    const diffMs = Date.now() - bootTime.getTime();
-    const days = Math.floor(diffMs / 86400000);
-    const hours = Math.floor((diffMs % 86400000) / 3600000);
+    if (uptimeH === null) return null;
+    const days  = Math.floor(uptimeH / 24);
+    const hours = Math.floor(uptimeH % 24);
     const uptime = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
-    const bootStr = bootTime.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    const bootMs   = Date.now() - uptimeH * 3600_000;
+    const bootStr  = new Date(bootMs).toLocaleDateString(undefined, {
+      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
     });
     return { uptime, bootStr };
-  }, [lastBoot]);
+  }, [uptimeH]);
 
   const healthyCount = MONITORED_INTEGRATIONS.filter((i) => {
     const e = entities[i.entity];
@@ -155,6 +171,11 @@ export function useHealthData(): HealthData {
     cpu,
     ram,
     disk,
+    diskUsedGb,
+    diskMaxGb,
+    netIn,
+    netOut,
+    vmStatus,
     batteries,
     criticalBatteries,
     staleSensors,

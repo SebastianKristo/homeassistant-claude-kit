@@ -1,0 +1,7 @@
+ute_stikk_garasje:
+  name: Ute Stikk Garasje
+  capabilities:
+    onoff: switch.ute_stikk_garasje
+    measure_current: sensor.ute_stikk_garasje_current
+    measure_power: sensor.ute_stikk_garasje_power
+    meter_power: sensor.ute_stikk_garasje_energy

@@ -1,33 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  /* Background */
-  --color-bg-primary: #0f0f14;
-  --color-bg-card: #1a1a24;
-  --color-bg-elevated: #252532;
+  /* Backgrounds — bridged from HA by panel.js; fallbacks = HA default dark */
+  --color-bg-primary:  #111111;
+  --color-bg-card:     #1c1c1c;
+  --color-bg-elevated: #202020;
 
-  /* Accents */
-  --color-accent: #6366f1;
-  --color-accent-violet: #8b5cf6;
-  --color-accent-blue: #3b82f6;
-  --color-accent-warm: #f59e0b;
-  --color-accent-cool: #06b6d4;
-  --color-accent-cool-light: #93c5fd;
-  --color-accent-green: #22c55e;
-  --color-accent-red: #ef4444;
+  /* Text — bridged from HA by panel.js */
+  --color-text-primary:   #e1e1e1;
+  --color-text-secondary: #9b9b9b;
+  --color-text-dim:       #6b6b6b;
+
+  /* Accent — bridged from HA by panel.js */
+  --color-accent:        #03a9f4;
+  --color-accent-violet: #ff9800;
+
+  /* Status — bridged from HA by panel.js */
+  --color-accent-green: #4caf50;
+  --color-accent-red:   #ef5350;
 
   /* Touch targets */
   --touch-min: 44px;
   --touch-comfortable: 48px;
 
-  /* Surfaces */
-  --color-surface-dim: #374151;
-  --color-accent-cover: #67a0c4;
-
-  /* Text */
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-dim: #475569;
+  /* Domain-specific accents — no HA equivalent, always fixed */
+  --color-accent-warm:       #f59e0b;   /* varme / heating */
+  --color-accent-cool:       #06b6d4;   /* kjøling / cooling */
+  --color-accent-cool-light: #93c5fd;   /* gradientendepunkt */
+  --color-accent-cover:      #67a0c4;   /* persienner / covers */
+  --color-surface-dim:       #202020;
 }
 
 /* react-day-picker dark theme overrides */
@@ -247,19 +248,6 @@ button:focus-visible, [role="button"]:focus-visible, input:focus-visible, select
   animation: slider-glow 1.2s ease-in-out infinite;
 }
 
-/* Subtle noise texture for depth — SVG feTurbulence applied to a rect.
-   Key: filter must be applied to visible content (rect), and # encoded as %23 in data URIs. */
-#root::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-}
 
 html,
 body,
@@ -269,8 +257,104 @@ body,
   overflow-x: clip;
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Light mode overrides ──────────────────────────────────────────────────
+   panel.js sets data-color-scheme="light" on <html> when HA uses a light
+   theme. These overrides replace white-based opacity utilities (invisible on
+   light backgrounds) with equivalent dark-based ones that remain visible.
+   Dark mode is completely unchanged — all rules are scoped to [data-color-scheme="light"].
+   ────────────────────────────────────────────────────────────────────────── */
+[data-color-scheme="light"] {
+  /* Subtle surface overlays — white/X → black/X equivalents */
+  & .bg-white\/6   { background-color: rgb(0 0 0 / 0.05); }
+  & .bg-white\/8   { background-color: rgb(0 0 0 / 0.06); }
+  & .bg-white\/10  { background-color: rgb(0 0 0 / 0.07); }
+  & .bg-white\/12  { background-color: rgb(0 0 0 / 0.08); }
+  & .bg-white\/14  { background-color: rgb(0 0 0 / 0.09); }
+  & .bg-white\/15  { background-color: rgb(0 0 0 / 0.10); }
+  & .bg-white\/16  { background-color: rgb(0 0 0 / 0.10); }
+  & .bg-white\/20  { background-color: rgb(0 0 0 / 0.12); }
+  & .bg-white\/25  { background-color: rgb(0 0 0 / 0.15); }
+  & .bg-white\/30  { background-color: rgb(0 0 0 / 0.18); }
+
+  /* Hover / active states */
+  & .hover\:bg-white\/8:hover   { background-color: rgb(0 0 0 / 0.07); }
+  & .hover\:bg-white\/10:hover  { background-color: rgb(0 0 0 / 0.08); }
+  & .hover\:bg-white\/12:hover  { background-color: rgb(0 0 0 / 0.09); }
+  & .hover\:bg-white\/14:hover  { background-color: rgb(0 0 0 / 0.10); }
+  & .hover\:bg-white\/16:hover  { background-color: rgb(0 0 0 / 0.11); }
+  & .active\:bg-white\/8:active { background-color: rgb(0 0 0 / 0.09); }
+
+  /* Borders — white/X → black/X */
+  & .border-white\/5  { border-color: rgb(0 0 0 / 0.09); }
+  & .border-white\/6  { border-color: rgb(0 0 0 / 0.10); }
+  & .border-white\/8  { border-color: rgb(0 0 0 / 0.11); }
+  & .border-white\/10 { border-color: rgb(0 0 0 / 0.12); }
+  & .border-white\/15 { border-color: rgb(0 0 0 / 0.14); }
+  & .border-white\/20 { border-color: rgb(0 0 0 / 0.16); }
+
+  /* Ring utilities */
+  & .ring-white\/5  { --tw-ring-color: rgb(0 0 0 / 0.09); }
+  & .ring-white\/10 { --tw-ring-color: rgb(0 0 0 / 0.12); }
+  & .ring-white\/20 { --tw-ring-color: rgb(0 0 0 / 0.15); }
+
+  /* Gradient fade edges (scroll arrows, etc.) */
+  & .from-bg-card { --tw-gradient-from: var(--color-bg-card); }
+
+  /* Radix overlay behind bottom sheets — keep dark for modal effect */
+  /* .bg-black\/50 intentionally NOT overridden — modals need dark scrim */
+
+  /* Forecast strip precipitation probability — blue stays readable on light */
+
+  /* Boost text contrast: make "dim" labels readable on white backgrounds.
+     --color-text-dim is already set to #666666 by panel.js for light mode,
+     but some components use text opacity variants which need help too. */
+  & .text-text-dim\/60 { color: rgb(0 0 0 / 0.40); }
+  & .text-text-dim\/40 { color: rgb(0 0 0 / 0.30); }
+
+  /* Glassy camera overlays — keep dark (camera image is always dark) */
+  /* .bg-black\/40, .bg-black\/60 are NOT overridden */
+}
+
+/* Volume slider — draggable range input */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  touch-action: none;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  cursor: grab;
+}
+.volume-slider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+.volume-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  cursor: grab;
+}
+.volume-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.1);
 }

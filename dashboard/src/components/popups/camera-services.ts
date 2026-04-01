@@ -40,31 +40,44 @@ export function fireServiceRest(
 }
 
 /**
- * Trigger a snapshot save via shell_command and call back when it's likely done.
- * The shell command takes ~3-5s to grab a frame from go2rtc and save to disk.
+ * Trigger a snapshot save and call back when it's likely done.
  *
- * Pipeline: writes to input_text.snapshot_save_camera →
- * automation reads it → shell_command.copy_stream_snapshot runs →
- * saves to /media/snapshots/. Both the helper and automation must exist in HA.
+ * Two modes:
+ * 1. If SNAPSHOT_SAVE_CAMERA is configured: writes to the input_text helper
+ *    which triggers copy_stream_snapshot shell command (go2rtc → /config/www/ + /media/).
+ * 2. Fallback (SNAPSHOT_SAVE_CAMERA empty): calls camera.snapshot via REST, saving
+ *    to /config/www/snapshots/{cameraId}/{date}/{time}_stream.jpg so SnapshotHistory
+ *    can find it via media_source/browse_media.
  *
- * Do NOT call this function to health-check battery cameras. It initiates a go2rtc
- * P2P stream session, which wakes the camera and drains battery.
+ * Do NOT call this for battery cameras — it wakes the camera and drains battery.
  */
 export function triggerSnapshot(
   cameraId: string,
   cancelled: boolean,
   onDone: () => void,
+  cameraEntity?: string,
 ) {
-  fireServiceRest("input_text", "set_value", {
-    entity_id: SNAPSHOT_SAVE_CAMERA,
-    value: cameraId,
-  });
-  setTimeout(() => {
-    if (cancelled) return;
-    fireServiceRest("shell_command", "copy_stream_snapshot", {});
-    // Wait for the shell command to complete before signaling done
-    setTimeout(() => onDone(), 5000);
-  }, 300);
+  if (SNAPSHOT_SAVE_CAMERA) {
+    fireServiceRest("input_text", "set_value", {
+      entity_id: SNAPSHOT_SAVE_CAMERA,
+      value: cameraId,
+    });
+    setTimeout(() => {
+      if (cancelled) return;
+      fireServiceRest("shell_command", "copy_stream_snapshot", {});
+      setTimeout(() => onDone(), 5000);
+    }, 300);
+  } else if (cameraEntity) {
+    // Fallback: HA's camera.snapshot creates parent directories automatically.
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const h = String(now.getHours()).padStart(2, "0");
+    const m = String(now.getMinutes()).padStart(2, "0");
+    const s = String(now.getSeconds()).padStart(2, "0");
+    const filename = `/config/www/snapshots/${cameraId}/${dateStr}/${h}-${m}-${s}_stream.jpg`;
+    fireServiceRest("camera", "snapshot", { entity_id: cameraEntity, filename });
+    setTimeout(() => { if (!cancelled) onDone(); }, 2000);
+  }
 }
 
 /**

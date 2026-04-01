@@ -48,6 +48,7 @@ export function RemotePopup({
 }: RemotePopupProps) {
   const connection = useHass((s) => s.connection);
   const [adapter, setAdapter] = useState<TvAdapter | null>(null);
+  const [inputMode, setInputMode] = useState<"swipe" | "dpad">("swipe");
 
   const isTvMode = !!room.remoteEntity && !!room.tvPlatform;
 
@@ -62,6 +63,10 @@ export function RemotePopup({
     (entity?.attributes?.friendly_name as string) ?? mediaPlayerId;
   const state = entity?.state;
   const isPlaying = state === "playing";
+
+  // Remote power state (TV mode)
+  const remoteState = room.remoteEntity ? entities[room.remoteEntity]?.state : undefined;
+  const isRemoteOn = remoteState === "on";
   const features = (entity?.attributes?.supported_features as number) ?? 0;
 
   // Media info
@@ -165,14 +170,16 @@ export function RemotePopup({
     }
   };
 
-  const powerOff = () => {
+  const togglePower = () => {
     if (!connection) return;
     if (isTvMode && room.remoteEntity) {
-      callService(connection, "remote", "turn_off", {}, { entity_id: room.remoteEntity }).catch(() => {});
+      const svc = isRemoteOn ? "turn_off" : "turn_on";
+      callService(connection, "remote", svc, {}, { entity_id: room.remoteEntity }).catch(() => {});
+      if (isRemoteOn) onClose();
     } else {
       callService(connection, "media_player", "turn_off", {}, { entity_id: mediaPlayerId }).catch(() => {});
+      onClose();
     }
-    onClose();
   };
 
   // Audio mode transport (prev/next are fire-and-forget)
@@ -248,43 +255,136 @@ export function RemotePopup({
             )}
             <IconButton
               icon="mdi:power"
-              className="text-accent-green"
-              onClick={powerOff}
+              className={isRemoteOn ? "text-accent-green" : "text-text-dim"}
+              onClick={togglePower}
             />
           </div>
         </div>
 
-        {/* Content — centered vertically in remaining space */}
-        <div className="flex min-h-0 flex-1 flex-col justify-center space-y-4 py-4">
+        {/* Content */}
+        <div className="flex min-h-0 flex-1 flex-col space-y-4 py-4">
           {/* === TV REMOTE MODE === */}
           {isTvMode && (
             <>
-              {/* App strip */}
-              <AppStrip activeApp={activeApp} onLaunch={launchApp} />
-
-              {/* Touchpad */}
-              <Touchpad onAction={sendCommand} />
-
-              {/* System buttons */}
-              <div className="flex justify-center gap-6">
-                {(["back", "home", "menu"] as const).map((action) => (
+              {/* TV sleeping state */}
+              {!isRemoteOn ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-4">
+                  <Icon icon="mdi:television-off" width={48} className="text-text-dim" />
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-text-secondary">Apple TV sover</div>
+                    <div className="text-xs text-text-dim mt-1">Trykk på strøm for å vekke</div>
+                  </div>
                   <button
-                    key={action}
-                    onClick={() => sendCommand(action)}
-                    className="flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-xl bg-white/4 text-text-dim active:bg-white/10"
+                    onClick={togglePower}
+                    className="flex items-center gap-2 rounded-xl bg-accent/15 px-5 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent/25 active:bg-accent/30"
                   >
-                    <Icon
-                      icon={
-                        action === "back" ? "mdi:arrow-left"
-                        : action === "home" ? "mdi:circle-outline"
-                        : "mdi:menu"
-                      }
-                      width={16}
-                    />
-                    <span className="text-[7px] uppercase tracking-wide">{action}</span>
+                    <Icon icon="mdi:power" width={16} />
+                    Vekk Apple TV
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <>
+                  {/* App strip */}
+                  <AppStrip activeApp={activeApp} onLaunch={launchApp} />
+
+                  {/* Input mode toggle */}
+                  <div className="flex justify-center">
+                    <div className="flex rounded-xl bg-white/5 p-0.5">
+                      {(["swipe", "dpad"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setInputMode(mode)}
+                          className={`flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-xs font-medium transition-colors ${
+                            inputMode === mode
+                              ? "bg-white/12 text-text-primary"
+                              : "text-text-dim hover:text-text-secondary"
+                          }`}
+                        >
+                          <Icon
+                            icon={mode === "swipe" ? "mdi:gesture-swipe" : "mdi:gamepad-variant-outline"}
+                            width={14}
+                          />
+                          {mode === "swipe" ? "Swipe" : "D-pad"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Touchpad / D-pad + system buttons in one flex-1 block */}
+                  <div className="flex flex-1 min-h-0 flex-col gap-3">
+                    {inputMode === "swipe" ? (
+                      <div className="flex-1 min-h-0 flex flex-col">
+                        <Touchpad onAction={sendCommand} className="flex-1" />
+                      </div>
+                    ) : (
+                      <div data-no-drag className="flex flex-1 min-h-0 items-center justify-center">
+                        <div className="grid grid-cols-3 gap-2 place-items-center">
+                          <div />
+                          <button
+                            data-no-drag
+                            onClick={() => sendCommand("up")}
+                            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/6 text-text-secondary active:bg-white/14 active:scale-95 transition-all"
+                          >
+                            <Icon icon="mdi:chevron-up" width={24} />
+                          </button>
+                          <div />
+                          <button
+                            data-no-drag
+                            onClick={() => sendCommand("left")}
+                            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/6 text-text-secondary active:bg-white/14 active:scale-95 transition-all"
+                          >
+                            <Icon icon="mdi:chevron-left" width={24} />
+                          </button>
+                          <button
+                            data-no-drag
+                            onClick={() => sendCommand("ok")}
+                            className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-text-primary font-medium text-sm active:bg-white/20 active:scale-95 transition-all"
+                          >
+                            OK
+                          </button>
+                          <button
+                            data-no-drag
+                            onClick={() => sendCommand("right")}
+                            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/6 text-text-secondary active:bg-white/14 active:scale-95 transition-all"
+                          >
+                            <Icon icon="mdi:chevron-right" width={24} />
+                          </button>
+                          <div />
+                          <button
+                            data-no-drag
+                            onClick={() => sendCommand("down")}
+                            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/6 text-text-secondary active:bg-white/14 active:scale-95 transition-all"
+                          >
+                            <Icon icon="mdi:chevron-down" width={24} />
+                          </button>
+                          <div />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* System buttons — anchored at bottom of the flex-1 block */}
+                    <div className="flex shrink-0 justify-center gap-6">
+                      {(["back", "home", "menu"] as const).map((action) => (
+                        <button
+                          key={action}
+                          onClick={() => sendCommand(action)}
+                          className="flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-xl bg-white/4 text-text-dim active:bg-white/10"
+                        >
+                          <Icon
+                            icon={
+                              action === "back" ? "mdi:arrow-left"
+                              : action === "home" ? "mdi:circle-outline"
+                              : "mdi:menu"
+                            }
+                            width={16}
+                          />
+                          <span className="text-[7px] uppercase tracking-wide">{action}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -327,8 +427,8 @@ export function RemotePopup({
             />
           )}
 
-          {/* Transport */}
-          {showTransport && (
+          {/* Transport — audio mode only; TV transport goes through D-pad/swipe */}
+          {showTransport && !isTvMode && (
             <div className="flex items-center justify-center gap-2">
               {isTvMode ? (
                 <>

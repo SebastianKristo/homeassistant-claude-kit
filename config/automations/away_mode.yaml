@@ -1,0 +1,72 @@
+###############################################################################
+# Away Mode Automations — Toten hytte
+#
+# Away mode is the DEFAULT state for this cabin.
+# Turns ON when all tracked persons leave, OFF when someone arrives.
+###############################################################################
+
+# ── Away mode ON — alle drar ──────────────────────────────────────────────────
+
+- id: 'away_mode_on'
+  alias: Borte-modus - slå på
+  description: Aktiver borte-modus når alle har dratt fra hytta
+  triggers:
+  - trigger: state
+    entity_id:
+    - person.sebastian_kristo_jemtland
+    - person.rune_jemtland
+    - person.cybele_kristo
+    to: not_home
+    for:
+      minutes: 5
+  conditions:
+  - condition: template
+    value_template: >
+      {{ states('person.sebastian_kristo_jemtland') == 'not_home'
+         and states('person.rune_jemtland') == 'not_home'
+         and states('person.cybele_kristo') == 'not_home' }}
+  - condition: state
+    entity_id: input_boolean.away_mode
+    state: 'off'
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.away_mode
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: Hytta tom
+      message: Borte-modus aktivert. Alle har dratt fra hytta.
+      data:
+        push:
+          interruption-level: passive
+  mode: single
+
+
+# ── Away mode OFF — noen ankommer ─────────────────────────────────────────────
+
+- id: 'away_mode_off'
+  alias: Borte-modus - slå av
+  description: Deaktiver borte-modus når noen ankommer hytta
+  triggers:
+  - trigger: state
+    entity_id:
+    - person.sebastian_kristo_jemtland
+    - person.rune_jemtland
+    - person.cybele_kristo
+    to: home
+  conditions:
+  - condition: state
+    entity_id: input_boolean.away_mode
+    state: 'on'
+  actions:
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.away_mode
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: Velkommen til hytta
+      message: "{{ trigger.to_state.name }} er hjemme. Borte-modus deaktivert."
+      data:
+        push:
+          interruption-level: passive
+  mode: single

@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { HistoryPoint } from "../../hooks/useHistory";
 import type { StateSpan } from "../../hooks/useStateHistory";
 
@@ -28,6 +28,7 @@ export function Sparkline({
   const gradientId = useId();
   const warmPatternId = useId();
   const coolPatternId = useId();
+  const [tooltip, setTooltip] = useState<{ index: number; pxRatio: number } | null>(null);
 
   if (data.length < 2) return null;
 
@@ -91,12 +92,30 @@ export function Sparkline({
   const boilerRects = boilerSpans ? mapSpanRects(boilerSpans) : [];
   const acRects = acSpans ? mapSpanRects(acSpans) : [];
 
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const targetTime = tMin + ratio * tRange;
+    let nearest = 0;
+    let minDist = Infinity;
+    for (let i = 0; i < data.length; i++) {
+      const dist = Math.abs(data[i].time - targetTime);
+      if (dist < minDist) { minDist = dist; nearest = i; }
+    }
+    setTooltip({ index: nearest, pxRatio: ratio });
+  };
+
+  const activePoint = tooltip !== null ? data[tooltip.index] : null;
+
   return (
+    <div className="relative w-full overflow-visible" style={{ height }}>
     <svg
       viewBox={`0 0 ${vw} ${vh}`}
       preserveAspectRatio="none"
       className="block w-full overflow-hidden"
       style={{ height }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={() => setTooltip(null)}
     >
       <defs>
         <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
@@ -176,6 +195,41 @@ export function Sparkline({
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
       />
+      {/* Tooltip crosshair */}
+      {activePoint && (() => {
+        const cx = toX(activePoint.time);
+        const cy = toY(activePoint.value);
+        return (
+          <>
+            <line
+              x1={cx} y1={0} x2={cx} y2={vh}
+              stroke="white" strokeWidth={0.5} opacity={0.25}
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx={cx} cy={cy} r={2.5}
+              fill={color} opacity={0.9}
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        );
+      })()}
     </svg>
+    {/* Tooltip value pill — floats above the chart */}
+    {activePoint && tooltip !== null && (
+      <div
+        className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded bg-bg-elevated/95 px-1.5 py-0.5 text-[10px] tabular-nums text-text-primary"
+        style={{ left: `${tooltip.pxRatio * 100}%`, bottom: "100%" }}
+      >
+        {activePoint.value.toFixed(1)}
+        {targetData && (() => {
+          // find target value at this point in time
+          const t = activePoint.time;
+          const td = [...(targetData)].reverse().find((p) => p.time <= t);
+          return td ? ` / ${td.value.toFixed(1)}°` : null;
+        })()}
+      </div>
+    )}
+    </div>
   );
 }

@@ -6,6 +6,9 @@ import {
   TIMEOUT_MOTION_MOVIE,
   TRANSITION_ON,
   TRANSITION_OFF,
+  KOMFORTTEMP,
+  BORTE_TEMP,
+  SOMMERMODUS_TEMP,
 } from "../lib/entities";
 import type { NumberConfig, BooleanConfig, SettingConfig } from "../lib/settings-types";
 export type { NumberConfig, BooleanConfig, SettingConfig };
@@ -33,6 +36,16 @@ export const TRANSITIONS: NumberConfig[] = [
     help: "Fade-in duration when lights turn on." },
   { kind: "number", entity: TRANSITION_OFF, label: "Turn Off", unit: "s", min: 0, max: 10, step: 0.5,
     help: "Fade-out duration when lights turn off." },
+];
+
+// ── Climate ──────────────────────────────────────────────────────────
+export const CLIMATE_SETTINGS: NumberConfig[] = [
+  { kind: "number", entity: KOMFORTTEMP, label: "Komforttemperatur", unit: "°C", min: 15, max: 25, step: 0.5,
+    help: "Temperaturmål når noen er hjemme (Hjemme og Ankommer i morgen)." },
+  { kind: "number", entity: BORTE_TEMP, label: "Borte-temperatur", unit: "°C", min: 10, max: 22, step: 0.5,
+    help: "Temperaturmål når hytta er tom (Borte-modus)." },
+  { kind: "number", entity: SOMMERMODUS_TEMP, label: "Sommertemperatur", unit: "°C", min: 10, max: 22, step: 0.5,
+    help: "Temperaturmål i sommer-modus — minimal frostsikring." },
 ];
 
 // ── Add your own sections below ───────────────────────────────────────

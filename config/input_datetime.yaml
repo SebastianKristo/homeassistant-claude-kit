@@ -1,0 +1,37 @@
+vvb_heater_completed:
+  name: VVB heater completed
+  has_date: true
+  has_time: true
+
+vvb_heater_legioniella:
+  name: VVB heater legionella
+  has_date: true
+  has_time: true
+
+sebastian_vekkealarm:
+  name: Sebastian Vekkealarm
+  icon: mdi:alarm
+  has_date: false
+  has_time: true
+
+vanning_kjokken_starttid:
+  name: Kjøkken Starttid
+  has_date: false
+  has_time: true
+
+vanning_veranda_bed_starttid:
+  name: Veranda Bed Starttid
+  has_date: false
+  has_time: true
+
+vanning_veranda_blomster_starttid:
+  name: Veranda Blomster Starttid
+  has_date: false
+  has_time: true
+
+
+oppvaskmaskin_start:
+  name: Oppvaskmaskin Starttid
+  icon: mdi:dishwasher
+  has_date: true
+  has_time: true

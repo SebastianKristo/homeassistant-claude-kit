@@ -1,0 +1,21 @@
+{% macro translate_condition(state) %}
+{% set conditions = {
+  'clear-night': 'Klart',
+  'cloudy': 'Overskyet',
+  'exceptional': 'Fantastisk',
+  'fog': 'Tåke',
+  'hail': 'Hagl',
+  'lightning': 'Torden',
+  'lightning-rainy': 'Torden, regn',
+  'partlycloudy': 'Overskyet',
+  'pouring': 'Pøsregn',
+  'rainy': 'Regn',
+  'snowy': 'Snø',
+  'snowy-rainy': 'Sludd',
+  'sunny': 'Sol',
+  'windy': 'Vind',
+  'windy-variant': 'Vind'
+} %}
+{{ conditions[state] if state in conditions else 'Vet ikke' }}
+{% endmacro %}
+

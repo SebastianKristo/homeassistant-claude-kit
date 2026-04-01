@@ -110,7 +110,7 @@ export function MediaPlayerCard({
   if (!isActive && !isRemoteOn) {
     // Off state: no remote or remote is off, and not playing
     cardContent = (
-      <div className="flex items-center justify-between rounded-xl bg-bg-elevated p-3">
+      <div className="flex items-center justify-between rounded-xl bg-bg-card p-3">
         <div className="min-w-0">
           <span className="text-sm">{name}</span>
           {roomLabel && (
@@ -134,7 +134,7 @@ export function MediaPlayerCard({
   } else if (!isActive && isRemoteOn) {
     // On-idle state: remote on but not playing/paused
     cardContent = (
-      <div className="rounded-xl bg-bg-elevated p-3">
+      <div className="rounded-xl bg-bg-card p-3">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
@@ -190,7 +190,7 @@ export function MediaPlayerCard({
   } else {
     // Active state: playing/paused/buffering — full card
     cardContent = (
-      <div className="overflow-hidden rounded-xl bg-bg-elevated">
+      <div className="overflow-hidden rounded-xl bg-bg-card">
         <div className="flex gap-3 p-3.5">
           {picture && (
             <img

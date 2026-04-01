@@ -1,0 +1,612 @@
+#########################################
+#                                       #
+#         OPPVARMING                    #
+#                                       #
+#########################################
+
+um_daily_cost_oppvarming_kurs:
+  source: sensor.hourly_oppvarming_cost
+  cycle: daily
+  unique_id: um_daily_cost_oppvarming_kurs
+
+um_hourly_cost_oppvarming_kurs:
+  source: sensor.hourly_oppvarming_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_oppvarming_kurs
+
+um_monthly_cost_oppvarming_kurs:
+  source: sensor.hourly_oppvarming_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_oppvarming_kurs
+
+#########################################
+#                                       #
+#         LYS                           #
+#                                       #
+#########################################
+
+um_daily_cost_lights:
+  source: sensor.hourly_lys_cost
+  cycle: daily
+  unique_id: um_daily_cost_lights
+
+um_hourly_cost_lights:
+  source: sensor.hourly_lys_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_lights
+
+um_monthly_cost_lights:
+  source: sensor.hourly_lys_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_lights
+
+#########################################
+#                                       #
+#         STUE                          #
+#                                       #
+#########################################
+
+um_daily_cost_stue_kurs:
+  source: sensor.hourly_stue_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_stue_kurs
+
+um_hourly_cost_stue_kurs:
+  source: sensor.hourly_stue_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_stue_kurs
+
+um_monthly_cost_stue_kurs:
+  source: sensor.hourly_stue_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_stue_kurs
+
+#########################################
+#                                       #
+#         KJØKKEN                       #
+#                                       #
+#########################################
+
+um_daily_cost_kjokken_kurs:
+  source: sensor.hourly_kjokken_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_kjokken_kurs
+
+um_hourly_cost_kjokken_kurs:
+  source: sensor.hourly_kjokken_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_kjokken_kurs
+
+um_monthly_cost_kjokken_kurs:
+  source: sensor.hourly_kjokken_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_kjokken_kurs
+
+#########################################
+#                                       #
+#         VASKEROM OG DO                #
+#                                       #
+#########################################
+
+um_daily_cost_vaskegang_kurs:
+  source: sensor.hourly_vaskerom_og_do_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_vaskegang_og_do_kurs
+
+um_hourly_cost_vaskegang_kurs:
+  source: sensor.hourly_vaskerom_og_do_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_vaskegang_og_do_kurs
+
+um_monthly_cost_vaskegang_kurs:
+  source: sensor.hourly_vaskerom_og_do_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_vaskegang_og_do_kurs
+
+#########################################
+#                                       #
+#         SOVEROM OG BAD                #
+#                                       #
+#########################################
+
+um_daily_cost_soverom_og_bad_kurs:
+  source: sensor.hourly_soverom_og_bad_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_soverom_og_bad_kurs
+
+um_hourly_cost_soverom_og_bad_kurs:
+  source: sensor.hourly_soverom_og_bad_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_soverom_og_bad_kurs
+
+um_monthly_cost_soverom_og_bad_kurs:
+  source: sensor.hourly_soverom_og_bad_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_soverom_og_bad_kurs
+
+#########################################
+#                                       #
+#         GANG OG BOD                   #
+#                                       #
+#########################################
+
+um_daily_cost_gang_og_bod_kurs:
+  source: sensor.hourly_gang_og_bod_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_gang_og_bod_kurs
+
+um_hourly_cost_gang_og_bod_kurs:
+  source: sensor.hourly_gang_og_bod_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_gang_og_bod_kurs
+
+um_monthly_cost_gang_og_bod_kurs:
+  source: sensor.hourly_gang_og_bod_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_gang_og_bod_kurs
+
+#########################################
+#                                       #
+#         VASKEMASKIN                   #
+#                                       #
+#########################################
+
+um_daily_cost_vaskemaskin_kurs:
+  source: sensor.hourly_vaskemaskin_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_vaskemaskin_kurs
+
+um_hourly_cost_vaskemaskin_kurs:
+  source: sensor.hourly_vaskemaskin_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_vaskemaskin_kurs
+
+um_monthly_cost_vaskemaskin_kurs:
+  source: sensor.hourly_vaskemaskin_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_vaskemaskin_kurs
+
+#########################################
+#                                       #
+#         OPPVASKMASKIN                 #
+#                                       #
+#########################################
+
+um_daily_cost_oppvaskmaskin_kurs:
+  source: sensor.hourly_oppvaskmaskin_cost
+  cycle: daily
+  unique_id: um_daily_cost_oppvaskmaskin_kurs
+
+um_hourly_cost_oppvaskmaskin_kurs:
+  source: sensor.hourly_oppvaskmaskin_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_oppvaskmaskin_kurs
+
+um_monthly_cost_oppvaskmaskin_kurs:
+  source: sensor.hourly_oppvaskmaskin_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_oppvaskmaskin_kurs
+
+#########################################
+#                                       #
+#         STRØMMÅLER                    #
+#                                       #
+#########################################
+
+um_daily_cost_strommaler:
+  source: sensor.hourly_strommaler_cost
+  cycle: daily
+  unique_id: um_daily_cost_strommaler
+
+um_hourly_cost_strommaler:
+  source: sensor.hourly_strommaler_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_strommaler
+
+um_monthly_cost_strommaler:
+  source: sensor.hourly_strommaler_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_strommaler
+
+um_yearly_cost_strommaler:
+  source: sensor.hourly_strommaler_cost
+  cycle: yearly
+  unique_id: um_yearly_cost_strommaler
+
+#########################################
+#                                       #
+#         HVITVARER                     #
+#                                       #
+#########################################
+
+um_daily_cost_hvitvarer:
+  source: sensor.hourly_hvitvarer_cost
+  cycle: daily
+  unique_id: um_daily_cost_hvitvarer
+
+um_hourly_cost_hvitvarer:
+  source: sensor.hourly_hvitvarer_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_hvitvarer
+
+um_monthly_cost_hvitvarer:
+  source: sensor.hourly_hvitvarer_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_hvitvarer
+
+#########################################
+#                                       #
+#         DATA                          #
+#                                       #
+#########################################
+
+um_daily_cost_data:
+  source: sensor.hourly_data_cost
+  cycle: daily
+  unique_id: um_daily_cost_data
+
+um_hourly_cost_data:
+  source: sensor.hourly_data_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_data
+
+um_monthly_cost_data:
+  source: sensor.hourly_data_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_data
+
+#########################################
+#                                       #
+#         VARMTVANNSBEREDER             #
+#                                       #
+#########################################
+
+um_daily_cost_varmtvannsbereder_kurs:
+  source: sensor.hourly_varmtvannsbereder_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_varmtvannsbereder_kurs
+
+um_hourly_cost_varmtvannsbereder_kurs:
+  source: sensor.hourly_varmtvannsbereder_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_varmtvannsbereder_kurs
+
+um_monthly_cost_varmtvannsbereder_kurs:
+  source: sensor.hourly_varmtvannsbereder_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_varmtvannsbereder_kurs
+
+#########################################
+#                                       #
+#         Norgespris                    #
+#                                       #
+#########################################
+
+#########################################
+#                                       #
+#         OPPVARMING                    #
+#                                       #
+#########################################
+
+um_daily_cost_oppvarming_kurs_norgespris:
+  source: sensor.hourly_oppvarming_cost
+  cycle: daily
+  unique_id: um_daily_cost_oppvarming_kurs_norgespris
+
+um_hourly_cost_oppvarming_kurs_norgespris:
+  source: sensor.hourly_oppvarming_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_oppvarming_kurs_norgespris
+
+um_monthly_cost_oppvarming_kurs_norgespris:
+  source: sensor.hourly_oppvarming_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_oppvarming_kurs_norgespris
+
+#########################################
+#                                       #
+#         LYS                           #
+#                                       #
+#########################################
+
+um_daily_cost_lights_norgespris:
+  source: sensor.hourly_lys_cost
+  cycle: daily
+  unique_id: um_daily_cost_lights_norgespris
+
+um_hourly_cost_lights_norgespris:
+  source: sensor.hourly_lys_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_lights_norgespris
+
+um_monthly_cost_lights_norgespris:
+  source: sensor.hourly_lys_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_lights_norgespris
+
+#########################################
+#                                       #
+#         STUE                          #
+#                                       #
+#########################################
+
+um_daily_cost_stue_kurs_norgespris:
+  source: sensor.hourly_stue_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_stue_kurs_norgespris
+
+um_hourly_cost_stue_kurs_norgespris:
+  source: sensor.hourly_stue_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_stue_kurs_norgespris
+
+um_monthly_cost_stue_kurs_norgespris:
+  source: sensor.hourly_stue_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_stue_kurs_norgespris
+
+#########################################
+#                                       #
+#         KJØKKEN                       #
+#                                       #
+#########################################
+
+um_daily_cost_kjokken_kurs_norgespris:
+  source: sensor.hourly_kjokken_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_kjokken_kurs_norgespris
+
+um_hourly_cost_kjokken_kurs_norgespris:
+  source: sensor.hourly_kjokken_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_kjokken_kurs_norgespris
+
+um_monthly_cost_kjokken_kurs_norgespris:
+  source: sensor.hourly_kjokken_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_kjokken_kurs_norgespris
+
+#########################################
+#                                       #
+#         VASKEROM OG DO                #
+#                                       #
+#########################################
+
+um_daily_cost_vaskegang_kurs_norgespris:
+  source: sensor.hourly_vaskerom_og_do_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_vaskegang_og_do_kurs_norgespris
+
+um_hourly_cost_vaskegang_kurs_norgespris:
+  source: sensor.hourly_vaskerom_og_do_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_vaskegang_og_do_kurs_norgespris
+
+um_monthly_cost_vaskegang_kurs_norgespris:
+  source: sensor.hourly_vaskerom_og_do_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_vaskegang_og_do_kurs_norgespris
+
+#########################################
+#                                       #
+#         SOVEROM OG BAD                #
+#                                       #
+#########################################
+
+um_daily_cost_soverom_og_bad_kurs_norgespris:
+  source: sensor.hourly_soverom_og_bad_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_soverom_og_bad_kurs_norgespris
+
+um_hourly_cost_soverom_og_bad_kurs_norgespris:
+  source: sensor.hourly_soverom_og_bad_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_soverom_og_bad_kurs_norgespris
+
+um_monthly_cost_soverom_og_bad_kurs_norgespris:
+  source: sensor.hourly_soverom_og_bad_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_soverom_og_bad_kurs_norgespris
+
+#########################################
+#                                       #
+#         GANG OG BOD                   #
+#                                       #
+#########################################
+
+um_daily_cost_gang_og_bod_kurs_norgespris:
+  source: sensor.hourly_gang_og_bod_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_gang_og_bod_kurs_norgespris
+
+um_hourly_cost_gang_og_bod_kurs_norgespris:
+  source: sensor.hourly_gang_og_bod_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_gang_og_bod_kurs_norgespris
+
+um_monthly_cost_gang_og_bod_kurs_norgespris:
+  source: sensor.hourly_gang_og_bod_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_gang_og_bod_kurs_norgespris
+
+#########################################
+#                                       #
+#         VASKEMASKIN                   #
+#                                       #
+#########################################
+
+um_daily_cost_vaskemaskin_kurs_norgespris:
+  source: sensor.hourly_vaskemaskin_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_vaskemaskin_kurs_norgespris
+
+um_hourly_cost_vaskemaskin_kurs_norgespris:
+  source: sensor.hourly_vaskemaskin_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_vaskemaskin_kurs_norgespris
+
+um_monthly_cost_vaskemaskin_kurs_norgespris:
+  source: sensor.hourly_vaskemaskin_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_vaskemaskin_kurs_norgespris
+
+#########################################
+#                                       #
+#         OPPVASKMASKIN                 #
+#                                       #
+#########################################
+
+um_daily_cost_oppvaskmaskin_kurs_norgespris:
+  source: sensor.hourly_oppvaskmaskin_cost
+  cycle: daily
+  unique_id: um_daily_cost_oppvaskmaskin_kurs_norgespris
+
+um_hourly_cost_oppvaskmaskin_kurs_norgespris:
+  source: sensor.hourly_oppvaskmaskin_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_oppvaskmaskin_kurs_norgespris
+
+um_monthly_cost_oppvaskmaskin_kurs_norgespris:
+  source: sensor.hourly_oppvaskmaskin_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_oppvaskmaskin_kurs_norgespris
+
+#########################################
+#                                       #
+#         STRØMMÅLER                    #
+#                                       #
+#########################################
+
+um_daily_cost_strommaler_norgespris:
+  source: sensor.hourly_strommaler_cost_norgespris
+  cycle: daily
+  unique_id: um_daily_cost_strommaler_norgespris
+
+um_hourly_cost_strommaler_norgespris:
+  source: sensor.hourly_strommaler_cost_norgespris
+  cycle: hourly
+  unique_id: um_hourly_cost_strommaler_norgespris
+
+um_monthly_cost_strommaler_norgespris:
+  source: sensor.hourly_strommaler_cost_norgespris
+  cycle: monthly
+  unique_id: um_monthly_cost_strommaler_norgespris
+
+#########################################
+#                                       #
+#         HVITVARER                     #
+#                                       #
+#########################################
+
+um_daily_cost_hvitvarer_norgespris:
+  source: sensor.hourly_hvitvarer_cost
+  cycle: daily
+  unique_id: um_daily_cost_hvitvarer_norgespris
+
+um_hourly_cost_hvitvarer_norgespris:
+  source: sensor.hourly_hvitvarer_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_hvitvarer_norgespris
+
+um_monthly_cost_hvitvarer_norgespris:
+  source: sensor.hourly_hvitvarer_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_hvitvarer_norgespris
+
+#########################################
+#                                       #
+#         DATA                          #
+#                                       #
+#########################################
+
+um_daily_cost_data_norgespris:
+  source: sensor.hourly_data_cost
+  cycle: daily
+  unique_id: um_daily_cost_data_norgespris
+
+um_hourly_cost_data_norgespris:
+  source: sensor.hourly_data_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_data_norgespris
+
+um_monthly_cost_data_norgespris:
+  source: sensor.hourly_data_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_data_norgespris
+
+#########################################
+#                                       #
+#         VARMTVANNSBEREDER             #
+#                                       #
+#########################################
+
+um_daily_cost_varmtvannsbereder_kurs_norgespris:
+  source: sensor.hourly_varmtvannsbereder_kurs_cost
+  cycle: daily
+  unique_id: um_daily_cost_varmtvannsbereder_kurs_norgespris
+
+um_hourly_cost_varmtvannsbereder_kurs_norgespris:
+  source: sensor.hourly_varmtvannsbereder_kurs_cost
+  cycle: hourly
+  unique_id: um_hourly_cost_varmtvannsbereder_kurs_norgespris
+
+um_monthly_cost_varmtvannsbereder_kurs_norgespris:
+  source: sensor.hourly_varmtvannsbereder_kurs_cost
+  cycle: monthly
+  unique_id: um_monthly_cost_varmtvannsbereder_kurs_norgespris
+
+norgespris_besparelse_dag:
+  source: sensor.norgespris_besparelse_siste_time
+  cycle: daily
+  name: "Norgespris Besparelse Denne Dag"
+
+norgespris_besparelse_maaned:
+  source: sensor.norgespris_besparelse_siste_time
+  cycle: monthly
+  name: "Norgespris Besparelse Denne Måneden"
+
+norgespris_besparelse_aar:
+  source: sensor.norgespris_besparelse_siste_time
+  cycle: yearly
+  name: "Norgespris Besparelse Dette Året"
+
+strommaler_time_peak:
+  source: sensor.strommaler_energy_imported
+  cycle: hourly
+  unique_id: strommaler_time_peak
+
+tesla_daglig_kjoring:
+  source: sensor.tesla_model_y_kilometerteller
+  cycle: daily
+  name: "Tesla Model Y Daglig Kjøring"
+
+tesla_lading_kostnad_per_okt:
+  source: sensor.tesla_siste_lading_kostnad
+  cycle: daily
+
+vannforbruk_daglig:
+  source: sensor.my_water_grip_total_volume_m3
+  cycle: daily
+  name: "Vannforbruk Daglig"
+
+vannforbruk_ukentlig:
+  source: sensor.my_water_grip_total_volume_m3
+  cycle: weekly
+  name: "Vannforbruk Ukentlig"
+
+vannforbruk_manedlig:
+  source: sensor.my_water_grip_total_volume_m3
+  cycle: monthly
+
+#########################################
+#                                       #
+#         ELBIL / UMÅLT FORBRUK         #
+#                                       #
+#########################################
+
+umalt_forbruk_daglig:
+  source: sensor.umalt_forbruk_energi
+  cycle: daily
+  unique_id: umalt_forbruk_daglig
+  name: "Umålt forbruk daglig"
+  name: "Vannforbruk Månedlig"

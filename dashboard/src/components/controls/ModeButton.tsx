@@ -44,7 +44,7 @@ export function ModeButton({
       className={`relative flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${phaseOpacity} ${phaseShake} ${
         control.displayValue
           ? `${activeColor} text-white`
-          : "bg-bg-elevated text-text-secondary hover:bg-white/10"
+          : "bg-white/8 text-text-secondary hover:bg-white/12"
       }`}
     >
       <Icon icon={icon} width={18} />

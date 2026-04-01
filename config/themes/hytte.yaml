@@ -1,0 +1,62 @@
+Hytte:
+  modes:
+    dark:
+      # ── Backgrounds ────────────────────────────────────────────────────────
+      primary-background-color: "#0b1210"
+      secondary-background-color: "#111a15"
+      card-background-color: "#14201a"
+
+      # ── Primary accent — amber/fire ─────────────────────────────────────────
+      primary-color: "#d97706"
+      accent-color: "#f59e0b"
+
+      # ── Text ───────────────────────────────────────────────────────────────
+      primary-text-color: "#ecf0e8"
+      secondary-text-color: "#8fa88a"
+      disabled-text-color: "#4a5e48"
+      text-primary-color: "#ecf0e8"
+      text-accent-color: "#d97706"
+
+      # ── Header / top bar ───────────────────────────────────────────────────
+      app-header-background-color: "#0b1210"
+      app-header-text-color: "#ecf0e8"
+      app-header-edit-background-color: "#1a2e20"
+      app-header-edit-text-color: "#d97706"
+
+      # ── Sidebar ────────────────────────────────────────────────────────────
+      sidebar-background-color: "#0e1a12"
+      sidebar-selected-background-color: "rgba(217, 119, 6, 0.12)"
+      sidebar-icon-color: "#4a5e48"
+      sidebar-selected-icon-color: "#d97706"
+      sidebar-text-color: "#8fa88a"
+      sidebar-selected-text-color: "#ecf0e8"
+
+      # ── Dividers / borders ─────────────────────────────────────────────────
+      divider-color: "rgba(255, 255, 255, 0.06)"
+
+      # ── State colors ───────────────────────────────────────────────────────
+      state-icon-color: "#8fa88a"
+      state-icon-active-color: "#d97706"
+
+      # ── Switch/toggle ──────────────────────────────────────────────────────
+      paper-toggle-button-checked-button-color: "#d97706"
+      paper-toggle-button-checked-bar-color: "rgba(217,119,6,0.5)"
+      paper-toggle-button-unchecked-button-color: "#4a5e48"
+      paper-toggle-button-unchecked-bar-color: "rgba(74, 94, 72, 0.5)"
+
+      # ── Lovelace cards ─────────────────────────────────────────────────────
+      ha-card-background: "#14201a"
+      ha-card-border-radius: "12px"
+      ha-card-border-width: "0"
+      ha-card-box-shadow: "0 2px 12px rgba(0,0,0,0.4)"
+
+      # ── Input fields ───────────────────────────────────────────────────────
+      input-fill-color: "#1a2e20"
+      input-ink-color: "#ecf0e8"
+      input-label-ink-color: "#8fa88a"
+
+      # ── Energy dashboard ───────────────────────────────────────────────────
+      energy-grid-consumption-color: "#d97706"
+      energy-grid-return-color: "#4ade80"
+      energy-battery-in-color: "#3b82f6"
+      energy-battery-out-color: "#06b6d4"

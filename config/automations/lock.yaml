@@ -1,0 +1,23 @@
+- id: '1775028158469'
+  alias: Lås døra etter åpning
+  description: Låser døren etter at den har blitt åpnet basert på input_number
+  triggers:
+    - trigger: state
+      entity_id:
+        - binary_sensor.inngang_dorsensor_door
+      to: 'on'
+  conditions: []
+  actions:
+    - wait_for_trigger:
+        - trigger: state
+          entity_id:
+            - binary_sensor.inngang_dorsensor_door
+          to: 'off'
+    - delay:
+        minutes: '{{ states(''input_number.las_automatisk_lasing_etter'') | int }}'
+    - action: lock.lock
+      data:
+        code: '270507'
+      target:
+        entity_id: lock.dorlas
+  mode: single

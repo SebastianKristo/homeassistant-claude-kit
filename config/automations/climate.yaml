@@ -1,0 +1,99 @@
+###############################################################################
+# Klimastyring — Toten hytte
+#
+# Modi (prioritet høyest til lavest):
+#   1. Sommer-modus ON   → sommer_temp (16°C) på alle enheter
+#   2. Hjemme (borte=off) → komfort_temp (22°C)
+#   3. Ankommer i morgen  → komfort_temp (starter oppvarming)
+#   4. Borte (default)    → borte_temp (16°C, øknomisk optimalt)
+#
+# Klimaenheter:
+#   Panelovn:    climate.sebastian, climate.cybele_panelovn, climate.rune_panelovn
+#   Gulvvarme:   climate.kjokken_toten_gulvvarme, climate.bad_toten_gulvvarme,
+#                climate.inngang_gulvvarme
+#   Varmepumpe:  climate.spisestue
+###############################################################################
+
+- id: 'climate_mode_sync'
+  alias: Klima - Synkroniser innstillinger
+  description: >
+    Setter temperatur på alle klimaenheter basert på aktivt modus.
+  triggers:
+  - trigger: state
+    entity_id:
+      - input_boolean.away_mode
+      - input_boolean.ankommer_i_morgen
+      - input_boolean.sommer_modus
+  - trigger: state
+    entity_id:
+      - input_number.komfort_temp
+      - input_number.borte_temp
+      - input_number.sommer_temp
+  - trigger: homeassistant
+    event: start
+    id: startup
+  conditions: []
+  actions:
+  - if:
+    - condition: trigger
+      id: startup
+    then:
+    - delay:
+        minutes: 3
+  - variables:
+      target_temp: >
+        {% if is_state('input_boolean.sommer_modus', 'on') %}
+          {{ states('input_number.sommer_temp') | float(16) }}
+        {% elif is_state('input_boolean.away_mode', 'off') %}
+          {{ states('input_number.komfort_temp') | float(22) }}
+        {% elif is_state('input_boolean.ankommer_i_morgen', 'on') %}
+          {{ states('input_number.komfort_temp') | float(22) }}
+        {% else %}
+          {{ states('input_number.borte_temp') | float(16) }}
+        {% endif %}
+  - action: climate.set_temperature
+    target:
+      entity_id:
+        - climate.sebastian
+        - climate.cybele_panelovn
+        - climate.rune_panelovn
+        - climate.kjokken_toten_gulvvarme
+        - climate.bad_toten_gulvvarme
+        - climate.inngang_gulvvarme
+        - climate.spisestue
+    data:
+      temperature: "{{ target_temp }}"
+  - action: climate.set_hvac_mode
+    target:
+      entity_id:
+        - climate.sebastian
+        - climate.cybele_panelovn
+        - climate.rune_panelovn
+        - climate.kjokken_toten_gulvvarme
+        - climate.bad_toten_gulvvarme
+        - climate.inngang_gulvvarme
+        - climate.spisestue
+    data:
+      hvac_mode: heat
+  mode: queued
+  max: 2
+
+
+# ── Nullstill "ankommer i morgen" når noen ankommer ──────────────────────────
+
+- id: 'climate_clear_ankommer'
+  alias: Klima - Nullstill ankommer-flagg ved ankomst
+  description: Slår av ankommer_i_morgen automatisk når noen ankommer hytta
+  triggers:
+  - trigger: state
+    entity_id: input_boolean.away_mode
+    to: 'off'
+  conditions:
+  - condition: state
+    entity_id: input_boolean.ankommer_i_morgen
+    state: 'on'
+  actions:
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.ankommer_i_morgen
+  mode: single

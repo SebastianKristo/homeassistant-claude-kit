@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import type { RoomConfig } from "../../lib/areas";
 import { useRoomState } from "../../hooks/useRoomState";
 import { useLightGradient } from "../../hooks/useLightGradient";
-import { useRoomActions } from "../../hooks/useRoomActions";
 
 interface RoomCardProps {
   room: RoomConfig;
@@ -33,24 +32,9 @@ export function RoomCard({ room, onTap }: RoomCardProps) {
     acAction,
     mediaEntity,
     mediaAppName,
-    isMuted,
     dishwasherStatus,
     dishwasherRemaining,
   } = state;
-
-  const actions = useRoomActions(room, {
-    lightsOn,
-    coversOpen,
-    activeMedia: state.activeMedia,
-    mediaState: mediaEntity?.state,
-    isMuted,
-  });
-
-  // Wrap handlers to stop card navigation
-  const stop = (fn: () => void) => (e: React.MouseEvent) => {
-    e.stopPropagation();
-    fn();
-  };
 
   return (
     <motion.div
@@ -88,128 +72,70 @@ export function RoomCard({ room, onTap }: RoomCardProps) {
         )}
       </div>
 
-      {/* Status indicators */}
+      {/* Status indicators — display only, no interactive buttons */}
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary">
         {/* Lights */}
         {totalLights > 0 && (
           <span
-            className={`relative flex items-center gap-1 rounded-md px-1 -mx-1 transition-transform after:absolute after:content-[''] after:-inset-2 ${actions.lightsPhase !== "idle" ? "pointer-events-none animate-pulse" : "hover:text-text-primary active:text-text-primary active:scale-95"}`}
-            onClick={stop(actions.toggleLights)}
+            className="flex items-center"
+            style={lightsIconColor && lightsOn > 0 ? { color: lightsIconColor } : undefined}
           >
-            <Icon
-              icon="mdi:lightbulb"
-              width={14}
-              style={lightsIconColor ? { color: lightsIconColor } : undefined}
-              className={lightsIconColor ? "glow-light" : "text-text-dim"}
-            />
-            {lightsOn > 0 ? `${lightsOn} on` : "Off"}
+            {lightsOn > 0 ? `${lightsOn} på` : <span className="text-text-dim">Av</span>}
           </span>
         )}
 
         {/* Covers / blinds */}
         {totalCovers > 0 && (
-          <span
-            className={`relative flex items-center gap-1 rounded-md px-1 -mx-1 transition-transform after:absolute after:content-[''] after:-inset-2 ${actions.coversPhase !== "idle" ? "pointer-events-none animate-pulse" : "hover:text-text-primary active:text-text-primary active:scale-95"}`}
-            onClick={stop(actions.toggleCovers)}
-          >
-            <Icon
-              icon={coversOpen > 0 ? "mdi:blinds-open" : "mdi:blinds"}
-              width={14}
-              className={coversOpen > 0 ? "text-text-secondary" : "text-text-dim"}
-            />
+          <span className={coversOpen > 0 ? "text-text-secondary" : "text-text-dim"}>
             {coversOpen > 0
-              ? coversOpen === totalCovers ? "Open" : `${coversOpen}/${totalCovers}`
-              : "Closed"}
+              ? coversOpen === totalCovers ? "Åpen" : `${coversOpen}/${totalCovers}`
+              : "Lukket"}
           </span>
         )}
 
-        {/* Contact sensors (window/door) — only shown when open */}
+        {/* Contact sensors — only shown when open */}
         {openContacts.map((s) => (
-          <span key={s.entity} className="flex items-center gap-1 text-accent-warm">
-            <Icon icon={s.type === "door" ? "mdi:door-open" : "mdi:window-open-variant"} width={14} />
-            {s.label}
-          </span>
+          <span key={s.entity} className="text-accent-warm">{s.label}</span>
         ))}
 
         {/* CO2 */}
         {co2 !== null && (
-          <span className={`flex items-center gap-1 ${
-            co2 > 1000 ? "text-accent-warm" : "text-text-dim"
-          }`}>
-            <Icon icon="mdi:molecule-co2" width={14} />
-            <span className="tabular-nums">{Math.round(co2)}</span>
+          <span className={`tabular-nums ${co2 > 1000 ? "text-accent-warm" : "text-text-dim"}`}>
+            {Math.round(co2)} ppm
           </span>
         )}
 
-        {/* Media */}
+        {/* Media — display only */}
         {mediaEntity && (
-          <span className="flex items-center gap-1 truncate">
-            <span
-              className={`relative shrink-0 rounded-full p-0.5 transition-transform after:absolute after:content-[''] after:-inset-3 ${actions.mediaPhase !== "idle" ? "pointer-events-none animate-pulse" : "hover:bg-white/10 active:bg-white/10 active:scale-95"}`}
-              onClick={stop(actions.togglePlayback)}
-            >
-              <Icon
-                icon={mediaEntity.state === "playing" ? "mdi:pause-circle" : "mdi:play-circle"}
-                width={14}
-                className="text-accent"
-              />
-            </span>
-            <span className="truncate">
-              {mediaEntity.attributes?.media_title ?? "Playing"}
-            </span>
-            <span
-              className={`relative shrink-0 rounded-full p-0.5 transition-transform after:absolute after:content-[''] after:-inset-3 ${actions.mutePhase !== "idle" ? "pointer-events-none animate-pulse" : "hover:bg-white/10 active:bg-white/10 active:scale-95"}`}
-              onClick={stop(actions.toggleMute)}
-            >
-              <Icon
-                icon={isMuted ? "mdi:volume-off" : "mdi:volume-medium"}
-                width={14}
-                className={isMuted ? "text-accent-red" : "text-text-dim"}
-              />
-            </span>
+          <span className="truncate text-accent">
+            {mediaEntity.attributes?.media_title ?? "Spiller"}
           </span>
         )}
         {!mediaEntity && mediaAppName && (
-          <span className="flex items-center gap-1 truncate">
-            <Icon icon="mdi:television" width={14} className="shrink-0 text-text-secondary" />
-            <span className="truncate">{mediaAppName}</span>
-          </span>
+          <span className="truncate text-text-secondary">{mediaAppName}</span>
         )}
 
-        {/* Dishwasher — only on kitchen card, only when online */}
+        {/* Dishwasher */}
         {(dishwasherStatus === "running" || dishwasherStatus === "ending") && (
-          <span className="flex items-center gap-1 text-accent-cool">
-            <Icon icon="mdi:dishwasher" width={14} className="shrink-0 dishwasher-active" />
-            <span className="tabular-nums">{dishwasherRemaining ?? "—"}min</span>
+          <span className="tabular-nums text-accent-cool">
+            {dishwasherRemaining ?? "—"}min
           </span>
         )}
         {dishwasherStatus === "ready" && (
-          <span className="flex items-center gap-1 text-accent-green">
-            <Icon icon="mdi:dishwasher" width={14} className="shrink-0" />
-            Done
-          </span>
+          <span className="text-accent-green">Ferdig</span>
         )}
 
-        {/* Climate indicators — right-aligned in same row */}
+        {/* Climate indicators */}
         {(heatingTrvCount > 0 || acAction) && (
           <span className="ml-auto flex items-center gap-2">
             {heatingTrvCount > 0 && (
-              <span
-                className="flex items-center gap-0.5"
-                style={{ animation: "glow-warm 2s ease-in-out infinite" }}
-              >
-                <Icon icon="lucide:heater" width={14} />
-                <span className="tabular-nums">{heatingTrvCount}</span>
+              <span className="tabular-nums" style={{ animation: "glow-warm 2s ease-in-out infinite" }}>
+                {heatingTrvCount}×
               </span>
             )}
             {acAction && (
-              <span
-                className="flex items-center"
-                style={{
-                  animation: `${acAction === "cooling" ? "glow-cool" : "glow-warm"} 2s ease-in-out infinite`,
-                }}
-              >
-                <Icon icon="mynaui:air-vent-solid" width={14} />
+              <span style={{ animation: `${acAction === "cooling" ? "glow-cool" : "glow-warm"} 2s ease-in-out infinite` }}>
+                {acAction === "cooling" ? "Kjøler" : "Varmer"}
               </span>
             )}
           </span>

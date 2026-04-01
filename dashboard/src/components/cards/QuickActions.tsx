@@ -21,7 +21,7 @@ export function QuickActions({ config }: QuickActionsProps) {
       {isEvening && (
         <ModeButton
           entityId={config.nightMode}
-          label="Night"
+          label="Natt"
           icon="mdi:weather-night"
           activeColor="bg-indigo-600"
         />
@@ -29,22 +29,34 @@ export function QuickActions({ config }: QuickActionsProps) {
       {projectorAvailable && (
         <ModeButton
           entityId={config.movieMode}
-          label="Movie"
+          label="Film"
           icon="mdi:movie-open"
           activeColor="bg-purple-600"
         />
       )}
       <ModeButton
+        entityId={config.homeMode}
+        label="Hjemme"
+        icon="mdi:home-heart"
+        activeColor="bg-teal-600"
+      />
+      <ModeButton
         entityId={config.workMode}
-        label="Work"
+        label="Arbeid"
         icon="mdi:desk"
         activeColor="bg-blue-600"
       />
       <ModeButton
         entityId={config.awayMode}
-        label="Away"
+        label="Vekk"
         icon="mdi:home-export-outline"
         activeColor="bg-orange-600"
+      />
+      <ModeButton
+        entityId={config.ferieMode}
+        label="Ferie"
+        icon="mdi:beach"
+        activeColor="bg-yellow-600"
       />
     </div>
   );

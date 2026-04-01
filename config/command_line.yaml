@@ -1,0 +1,63 @@
+- sensor:
+    name: fuel_brands_command
+    scan_interval: 604800
+    command: >
+      petrolDataTokenResponse=$(curl -s "https://api.drivstoffappen.no/api/v1/authorization-sessions") &&
+      petrolDataToken=$(echo "$petrolDataTokenResponse" | jq -r '.token') &&
+      tokenBytes=$(echo -n "$petrolDataToken" | xxd -p -c 256) &&
+      first=$(echo -n "$tokenBytes" | head -c 2) &&
+      rest=$(echo -n "$tokenBytes" | tail -c +3) &&
+      tokenBytesShifted="${rest}${first}" &&
+      tokenShifted=$(echo -n "$tokenBytesShifted" | xxd -r -p) &&
+      md5Hash=$(echo -n "$tokenShifted" | md5sum -b | awk '{print $1}') &&
+      md5Hash=$(echo "$md5Hash" | tr '[:upper:]' '[:lower:]') &&
+      X_API_KEY="$md5Hash" &&
+      X_CLIENT_ID="com.raskebiler.drivstoff.appen.ios" &&
+      curl -s -H "X-API-KEY: $X_API_KEY" -H "X-CLIENT-ID: $X_CLIENT_ID" "https://api.drivstoffappen.no/api/v1/brands" \
+      | jq -c '{brand: [ .[] | select(.id as $i | [1,2,3,4,5,6,7,8,9,10] | index($i)) ] }'
+    value_template: >
+      {{ value_json.brand | length }}
+    json_attributes:
+      - brand
+
+- sensor:
+    name: Gas Prices
+    command: >
+      app_id="com.raskebiler.drivstoff.appen.android";
+      api_brands="https://api.drivstoffappen.no/api/v1/brands";
+      api_sessions="https://api.drivstoffappen.no/api/v1/authorization-sessions";
+      api_stations="https://api.drivstoffappen.no/api/v1/stations?stationTypeId=1&includeDeleted=true&includePending=true&minUpdatedAt={{ (now() - timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S%z') | urlencode }}";
+
+      auth_token=$(curl -s $api_sessions | jq -r ".token");
+      api_key=$(python -c "import hashlib; auth_token = \"$auth_token\"; shifted_auth_token = bytearray(auth_token, 'utf-8')[1:] + bytearray(auth_token, 'utf-8')[:1]; print(hashlib.md5(shifted_auth_token).hexdigest())");
+      stations=$(curl -s -H "X-API-KEY: $api_key" -H "X-CLIENT-ID: $app_id" $api_stations);
+      brands=$(curl -s -H "X-API-KEY: $api_key" -H "X-CLIENT-ID: $app_id" $api_brands);
+      merged=$(jq -s '[.[0][] as $stations | .[1][] as $brands | select($stations.brandId == $brands.id) | $stations | .brand = $brands]' <(echo "$stations") <(echo "$brands"));
+      echo "{\"stations\": $(echo "$merged") }"
+    json_attributes:
+      - stations
+    value_template: "OK"
+    scan_interval: 1800
+
+- sensor:
+    name: Gas Pricessse
+    command: >
+      app_id="com.raskebiler.drivstoff.appen.android";
+      api_brands="https://api.drivstoffappen.no/api/v1/brands";
+      api_sessions="https://api.drivstoffappen.no/api/v1/authorization-sessions";
+      api_stations="https://api.drivstoffappen.no/api/v1/stations?stationTypeId=1&includeDeleted=true&includePending=true&minUpdatedAt={{ (now() - timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S%z') | urlencode }}";
+
+      auth_token=$(curl -s $api_sessions | jq -r ".token");
+      api_key=$(python3 -c "import hashlib; auth_token = \"$auth_token\"; shifted_auth_token = bytearray(auth_token, 'utf-8')[1:] + bytearray(auth_token, 'utf-8')[:1]; print(hashlib.md5(shifted_auth_token).hexdigest())");
+      stations=$(curl -s -H "X-API-KEY: $api_key" -H "X-CLIENT-ID: $app_id" $api_stations);
+      brands=$(curl -s -H "X-API-KEY: $api_key" -H "X-CLIENT-ID: $app_id" $api_brands);
+      merged=$(jq -s '[.[0][] as $stations | .[1][] as $brands 
+        | select($stations.brandId == $brands.id) 
+        | $stations | .brand = $brands] 
+        | map(select(.id as $id | [33,62] | index($id)))' \
+        <(echo "$stations") <(echo "$brands"));
+      echo "{\"stations\": $(echo "$merged") }"
+    json_attributes:
+      - stations
+    value_template: "OK"
+    scan_interval: 1800

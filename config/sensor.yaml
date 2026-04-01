@@ -1,0 +1,124 @@
+#########################################
+#                                       #
+#              Dato og tid              #
+#                                       #
+#########################################
+
+- platform: time_date
+  display_options:
+    - "time"
+    - "date"
+    - "date_time"
+    - "date_time_utc"
+    - "date_time_iso"
+    - "time_date"
+    - "time_utc"
+
+#########################################
+#                                       #
+#              Søppel                   #
+#                                       #
+#########################################
+
+- platform: rest
+  name: PostenDeliveryDays
+  resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=2850
+  headers:
+    x-requested-with: XMLHttpRequest
+  scan_interval: 57600
+  value_template: "{{ value_json.nextDeliveryDays }}"
+
+#########################################
+#                                       #
+#              Transport                #
+#                                       #
+#########################################
+
+#########################################
+#                                       #
+#              L Y N                    #
+#                                       #
+#########################################
+
+- platform: rest
+  name: Latest Lightning Strike Area
+  resource_template: >-
+    https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={{ states('sensor.latest_lightning_strike_latitude') }}&lon={{ states('sensor.latest_lightning_strike_longitude') }}
+  headers:
+    User-Agent: HomeAssistant/1.0
+  value_template: >
+    {{ value_json.address.suburb
+        or value_json.address.city
+        or value_json.address.town
+        or value_json.address.village
+        or value_json.address.state
+        or value_json.display_name }}
+  scan_interval: 3600
+
+#########################################
+#                                       #
+#              UniFi                    #
+#                                       #
+#########################################
+
+- platform: unifigateway
+  host: 192.168.0.1
+  port: 443
+  version: UDMP-unifiOS
+  username: gateway
+  password: Sdj2oi892"38SHejlash2a
+  monitored_conditions:
+    - www
+    - wan
+    - wlan
+    - lan
+
+#########################################
+#                                       #
+#         VANNMÅLER FLYT                #
+#                                       #
+#########################################
+
+#########################################
+
+#########################################
+#                                       #
+#         ELBIL / UMÅLT FORBRUK         #
+#                                       #
+#########################################
+
+- platform: integration
+  source: sensor.umalt_forbruk
+  name: "Umålt forbruk energi"
+  unique_id: umalt_forbruk_energi
+  unit_prefix: k
+  unit_time: h
+  method: left
+  round: 3
+
+- platform: history_stats
+  name: "TV Seertid I Dag"
+  unique_id: "tv_seertid_i_dag"
+  entity_id: media_player.stue_tv
+  state: "playing"
+  type: time
+  start: "{{ now().replace(hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "TV Seertid Denne Uka"
+  unique_id: "tv_seertid_uka"
+  entity_id: media_player.stue_tv
+  state: "playing"
+  type: time
+  start: "{{ now().replace(hour=0, minute=0, second=0) - timedelta(days=now().weekday()) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "TV Seertid Denne Måned"
+  unique_id: "tv_seertid_maned"
+  entity_id: media_player.stue_tv
+  state: "playing"
+  type: time
+  start: "{{ now().replace(day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"

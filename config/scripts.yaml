@@ -1,0 +1,1624 @@
+heat_stue:
+  alias: Varm stue (senk resten)
+  sequence:
+  - target:
+      entity_id:
+      - climate.stue_panelovn
+      - climate.stue_oljefyr
+    data:
+      temperature: '{{ states(''sensor.target_temperature'') | float(22) }}'
+    action: climate.set_temperature
+  - target:
+      entity_id:
+      - climate.sebastian_panelovn
+      - climate.cybele_panelovn
+      - climate.kjokken_panelovn
+      - climate.trappegang_panelovn
+    data:
+      temperature: '{{ states(''input_number.heating_min_temp'') | float(19) }}'
+    action: climate.set_temperature
+heat_rest_of_house:
+  alias: Varm resten (senk stue)
+  sequence:
+  - target:
+      entity_id:
+      - climate.sebastian_panelovn
+      - climate.cybele_panelovn
+      - climate.kjokken_panelovn
+      - climate.trappegang_panelovn
+      - climate.bad_gulvvarme
+    data:
+      temperature: '{{ states(''sensor.target_temperature'') | float(22) }}'
+    action: climate.set_temperature
+  - target:
+      entity_id:
+      - climate.stue_panelovn
+      - climate.stue_oljefyr
+    data:
+      temperature: '{{ states(''input_number.heating_min_temp'') | float(19) }}'
+    action: climate.set_temperature
+warmup_house:
+  alias: Varm opp huset
+  sequence:
+  - target:
+      entity_id:
+      - climate.stue_panelovn
+      - climate.stue_oljefyr
+      - climate.sebastian_panelovn
+      - climate.cybele_panelovn
+      - climate.kjokken_panelovn
+      - climate.trappegang_panelovn
+      - climate.bad_gulvvarme
+    data:
+      temperature: '{{ states(''input_number.comfort_temp'') | float }}'
+    action: climate.set_temperature
+vanning_30_min:
+  sequence:
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: '30'
+    target:
+      entity_id:
+      - number.veranda_vanning_sprinkler_a
+      - number.veranda_vanning_sprinkler_b
+      - number.veranda_vanning_sprinkler_c
+      - number.veranda_vanning_sprinkler_d
+  - action: valve.open_valve
+    metadata: {}
+    data: {}
+    target:
+      entity_id: valve.veranda_vanning_sprinkler_a
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.vanning_kasse_30_min_toggle
+  alias: Vanning 30 min
+  description: ''
+vanning_60_min:
+  sequence:
+  - action: number.set_value
+    metadata: {}
+    data:
+      value: '60'
+    target:
+      entity_id:
+      - number.veranda_vanning_sprinkler_a
+      - number.veranda_vanning_sprinkler_b
+      - number.veranda_vanning_sprinkler_c
+      - number.veranda_vanning_sprinkler_d
+  - action: valve.open_valve
+    metadata: {}
+    data: {}
+    target:
+      entity_id: valve.veranda_vanning_sprinkler_a
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.vanning_kasse_60_min_toogle
+  alias: Vanning 60 min
+  description: ''
+tv_modus:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.skjenk_lampe
+      - light.stalampe_piano
+      - light.gronn_sofalampe
+      - light.stalampe_hjorne
+      - light.peislampe
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.taklist
+      - light.sta_lampe
+  alias: Tv Modus
+  description: ''
+  icon: mdi:television
+scene_hacasa_dorlas_toggle:
+  sequence:
+  - if:
+    - condition: state
+      entity_id: lock.dorlas
+      state: locked
+    then:
+    - action: lock.unlock
+      metadata: {}
+      data: {}
+      target:
+        entity_id: lock.dorlas
+    else:
+    - if:
+      - condition: state
+        entity_id: lock.dorlas
+        state: unlocked
+      then:
+      - action: lock.lock
+        metadata: {}
+        data: {}
+        target:
+          entity_id: lock.dorlas
+  alias: Scene HaCasa Dørlås Toggle
+  description: ''
+forste_til_andre_etasje:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.andre_etasje_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.forste_etasje_hacasa
+  alias: Første Til Andre Etasje
+  description: ''
+andre_etasje_til_noen:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.noen_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_hacasa
+  alias: Andre Etasje Til Noen
+  description: ''
+andre_til_forste_etasje:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.andre_etasje_hacasa
+  alias: Andre Til Første Etasje
+  description: ''
+noen_til_forste_etasje_duplisere:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.noen_hacasa
+  alias: Noen Til Første Etasje (Duplisere)
+  description: ''
+noen_til_andre_etasje_duplisere_duplisere:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.andre_etasje_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.noen_hacasa
+  alias: Noen Til Andre Etasje
+  description: ''
+forste_til_alle:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.alle_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.forste_etasje_hacasa
+  alias: Første Til Alle
+  description: ''
+alle_til_noen:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.noen_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.alle_hacasa
+  alias: Alle Til Noen
+  description: ''
+alle_til_andre_etasje:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.andre_etasje_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.alle_hacasa
+  alias: Alle Til Andre Etasje
+  description: ''
+alle_til_forste_etasje:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.forste_etasje_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.alle_hacasa
+  alias: Alle Til Første Etasje
+  description: ''
+noen_til_alle:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.alle_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.noen_hacasa
+  alias: Noen Til Alle
+  description: ''
+forste_til_noen:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.noen_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.forste_etasje_hacasa
+  alias: Første Til Noen
+  description: ''
+andre_etasje_til_alle:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.alle_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_hacasa
+  alias: Andre Etasje Til Alle
+  description: ''
+strompris_idag_til_imorgen:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.strompris_imorgen_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.strompris_idag_hacasa
+  alias: Strømpris Idag Til Imorgen
+  description: ''
+strompris_imorgen_til_idag:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.strompris_idag_hacasa
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.strompris_imorgen_hacasa
+  alias: Strømpris Imorgen Til Idag
+  description: ''
+toggle_or_navigate_sonos:
+  alias: Toggle or Navigate Sonos
+  sequence:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: media_player.sonos
+        state: playing
+      sequence:
+      - target:
+          entity_id: media_player.sonos
+        action: media_player.media_pause
+  description: ''
+blinds_livingroom:
+  sequence:
+  - action: cover.set_cover_position
+    metadata: {}
+    data:
+      position: '{{ target_pos }}'
+    target:
+      entity_id:
+      - cover.markise_gruppe
+  alias: Blinds Livingroom
+  fields:
+    target_pos:
+      description: The desired Blinds position
+      example: 80
+      required: true
+      selector:
+        number:
+          min: 10
+          max: 100
+          step: 10
+          mode: box
+  description: ''
+  mode: single
+stovsuger_pause:
+  alias: Støvsuger pause
+  sequence:
+  - action: vacuum.pause
+    metadata: {}
+    data: {}
+    target:
+      entity_id: vacuum.sir_sweeps_a_lot
+  description: ''
+stovsuger_retuner_hjem:
+  alias: Støvsuger retuner hjem
+  sequence:
+  - action: vacuum.return_to_base
+    target:
+      entity_id: vacuum.sir_sweeps_a_lot
+    data: {}
+  description: ''
+stovsuger_start:
+  alias: Støvsuger start
+  sequence:
+  - action: vacuum.start
+    target:
+      entity_id: vacuum.sir_sweeps_a_lot
+    data: {}
+  description: ''
+test_stov_rom:
+  alias: Støvsugg Sebastian Soverom
+  sequence:
+  - data:
+      command: app_segment_clean
+      params:
+      - segments:
+        - 18
+        repeat: 1
+    action: vacuum.send_command
+    target:
+      entity_id: vacuum.sir_sweeps_a_lot
+  description: ''
+stovsugg_mamma_soverom:
+  alias: Støvsugg Mamma Soverom
+  sequence:
+  - data:
+      command: app_segment_clean
+      params:
+      - segments:
+        - 17
+        repeat: 1
+    action: vacuum.send_command
+    target:
+      entity_id: vacuum.sir_sweeps_a_lot
+  description: ''
+stovsugg_pappa_soverom:
+  alias: Støvsugg Pappa Soverom
+  sequence:
+  - data:
+      command: app_segment_clean
+      params:
+      - segments:
+        - 19
+        repeat: 1
+    action: vacuum.send_command
+    target:
+      entity_id: vacuum.sir_sweeps_a_lot
+  description: ''
+stovsugg_kontor_soverom:
+  alias: Støvsugg Kontor Soverom
+  sequence:
+  - data:
+      command: app_segment_clean
+      params:
+      - segments:
+        - 22
+        repeat: 1
+    action: vacuum.send_command
+    target:
+      entity_id: vacuum.sir_sweeps_a_lot
+  description: ''
+play_sonos:
+  alias: Play Sonos
+  sequence:
+  - action: media_player.media_play_pause
+    metadata: {}
+    data: {}
+    target:
+      entity_id: media_player.sonos
+  description: ''
+repeat_sonos:
+  alias: 'Repeat Sonos '
+  sequence:
+  - action: media_player.repeat_set
+    metadata: {}
+    data: {}
+    target:
+      entity_id: media_player.sonos
+  description: ''
+shuffle_sonos:
+  alias: 'Shuffle Sonos '
+  sequence:
+  - action: media_player.shuffle_set
+    metadata: {}
+    data:
+      shuffle: false
+    target:
+      entity_id: media_player.sonos
+  description: ''
+next_sonos:
+  alias: 'Next Sonos '
+  sequence:
+  - action: media_player.media_next_track
+    metadata: {}
+    data: {}
+    target:
+      entity_id: media_player.sonos
+  description: ''
+previous_sonos:
+  alias: 'Previous Sonos '
+  sequence:
+  - action: media_player.media_previous_track
+    metadata: {}
+    data: {}
+    target:
+      entity_id: media_player.sonos
+  description: ''
+cycle_vacuum_fan_speed:
+  alias: Cycle Vacuum Fan Speed
+  sequence:
+  - variables:
+      current_speed: '{{ states(''input_select.vacuum_fan_speed'') }}'
+      fan_speeds:
+      - 'off'
+      - quiet
+      - balanced
+      - turbo
+      - max
+  - choose:
+    - conditions: '{{ current_speed in fan_speeds }}'
+      sequence:
+      - variables:
+          next_speed: '{{ fan_speeds[(fan_speeds.index(current_speed) + 1) % fan_speeds
+            | length] }}
+
+            '
+      - target:
+          entity_id: input_select.vacuum_fan_speed
+        data:
+          option: '{{ next_speed }}'
+        action: input_select.select_option
+      - target:
+          entity_id: vacuum.sir_sweeps_a_lot
+        data:
+          fan_speed: '{{ next_speed }}'
+        action: vacuum.set_fan_speed
+    - conditions: '{{ current_speed not in fan_speeds }}'
+      sequence:
+      - target:
+          entity_id: input_select.vacuum_fan_speed
+        data:
+          option: 'off'
+        action: input_select.select_option
+      - target:
+          entity_id: vacuum.sir_sweeps_a_lot
+        data:
+          fan_speed: 'off'
+        action: vacuum.set_fan_speed
+  description: ''
+task_add_task:
+  sequence:
+  - action: todo.add_item
+    metadata: {}
+    data:
+      item: '{{ states(''input_text.key_title'') }}'
+      description: '{{ states(''input_number.key_priority'') | round() }}|{{ states(''input_text.key_icon'')
+        }}'
+    target:
+      entity_id:
+      - todo.mysmarthome_las
+  - action: input_text.set_value
+    metadata: {}
+    data:
+      value: ''
+    target:
+      entity_id:
+      - input_text.key_icon
+      - input_text.key_title
+  - action: input_number.set_value
+    metadata: {}
+    data:
+      value: 1
+    target:
+      entity_id:
+      - input_number.key_priority
+  alias: Task - Add task
+  description: ''
+alle_til_andre_etasje_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.alle_bubble
+  alias: Alle Til Andre Etasje Bubble
+  description: ''
+alle_til_forste_etasje_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.alle_bubble
+  alias: Alle Til Første Etasje Bubble
+  description: ''
+alle_til_noen_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.noen_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.alle_bubble
+  alias: Alle Til Noen Bubble
+  description: ''
+andre_etasje_til_alle_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.alle_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_bubble
+  alias: Andre Etasje Til Alle Bubble
+  description: ''
+andre_etasje_til_noen_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.noen_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_bubble
+  alias: Andre Etasje Til Noen Bubble
+  description: ''
+andre_til_forste_etasje_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_bubble
+  alias: Andre Til Første Etasje Bubble
+  description: ''
+forste_til_alle_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.alle_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_bubble
+  alias: Første Til Alle Bubble
+  description: ''
+forste_til_andre_etasje_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_bubble
+  alias: Første Til Andre Etasje Bubble
+  description: ''
+forste_til_noen_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.noen_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_bubble
+  alias: Første Til Noen Bubble
+  description: ''
+noen_til_alle_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.alle_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.noen_bubble
+  alias: Noen Til Alle Bubble
+  description: ''
+noen_til_andre_etasje_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.andre_etasje_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.noen_bubble
+  alias: Noen Til Andre Etasje Bubble
+  description: ''
+noen_til_forste_etasje_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.forste_etasje_bubble
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.noen_bubble
+  alias: Noen Til Første Etasje Bubble
+  description: ''
+av_til_idag_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_idag
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_av
+  alias: Av Til Idag Bubble
+  description: ''
+av_til_imorgen_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_imorgen
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_av
+  alias: Av Til Imorgen Bubble
+  description: ''
+idag_til_av_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_av
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_idag
+  alias: Idag Til Av Bubble
+  description: ''
+idag_til_imorgen_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_imorgen
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_idag
+  alias: Idag Til Imorgen Bubble
+  description: ''
+imorgen_til_av_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_av
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_imorgen
+  alias: 'Imorgen Til Av Bubble '
+  description: ''
+imorgen_til_idag_bubble:
+  sequence:
+  - action: input_boolean.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_idag
+  - action: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - input_boolean.bubble_pris_imorgen
+  alias: Imorgen Til Idag Bubble
+  description: ''
+mac_sleep_script:
+  sequence:
+  - action: rest_command.mac_sleep_mac
+    metadata: {}
+    data: {}
+  alias: Mac Sleep Script
+  description: ''
+start_sir_sweeps_a_lot_room_select:
+  sequence:
+  - if:
+    - condition: and
+      conditions:
+      - condition: state
+        entity_id: input_boolean.sir_sweeps_a_lot_mamma_soverom
+        state: 'off'
+      - condition: state
+        entity_id: input_boolean.sir_sweeps_a_lot_pappa_soverom
+        state: 'off'
+      - condition: state
+        entity_id: input_boolean.sir_sweeps_a_lot_pappa_kontor
+        state: 'off'
+      - condition: state
+        entity_id: input_boolean.sir_sweeps_a_lot_sebsatian_soverom
+        state: 'off'
+      - condition: state
+        entity_id: input_boolean.sir_sweeps_a_lot_trappegang
+        state: 'off'
+    then:
+    - action: vacuum.start
+      metadata: {}
+      data: {}
+      target:
+        entity_id: vacuum.sir_sweeps_a_lot
+    else:
+    - variables:
+        room_configs:
+        - name: sebasitan
+          boolean: input_boolean.sir_sweeps_a_lot_sebsatian_soverom
+          id: 18
+        - name: mamma
+          boolean: input_boolean.sir_sweeps_a_lot_mamma_soverom
+          id: 17
+        - name: pappa
+          boolean: input_boolean.sir_sweeps_a_lot_pappa_soverom
+          id: 19
+        - name: kontor
+          boolean: input_boolean.sir_sweeps_a_lot_pappa_kontor
+          id: 22
+        - name: trappegang
+          boolean: input_boolean.sir_sweeps_a_lot_trappegang
+          id: 16
+    - variables:
+        selected_rooms: "{% set ns = namespace(rooms=[]) %}\n{% for room in room_configs
+          %}\n  {% if is_state(room.boolean, 'on') %}\n    {% set ns.rooms = ns.rooms
+          + [room.id] %}\n  {% endif %}\n{% endfor %}\n{{ ns.rooms }}"
+    - action: vacuum.send_command
+      target:
+        entity_id: vacuum.sir_sweeps_a_lot
+      data:
+        command: app_segment_clean
+        params:
+        - segments: '{{ selected_rooms }}'
+          repeat: 1
+    - wait_template: '{{ is_state(''vacuum.sir_sweeps_a_lot'',''returning'') }}'
+      continue_on_timeout: true
+    - action: input_boolean.turn_off
+      metadata: {}
+      data: {}
+      target:
+        entity_id:
+        - input_boolean.sir_sweeps_a_lot_trappegang
+        - input_boolean.sir_sweeps_a_lot_pappa_soverom
+        - input_boolean.sir_sweeps_a_lot_pappa_kontor
+        - input_boolean.sir_sweeps_a_lot_mamma_soverom
+        - input_boolean.sir_sweeps_a_lot_sebsatian_soverom
+  alias: Start Sir Sweeps A Lot Room Select
+  description: Initiates a clean with Sir Sweeps A Lot. If specific rooms are selected
+    via dedicated input booleans, the vacuum cleans only those segments. Otherwise,
+    it performs a full clean of the entire area. Room selections are reset after the
+    cleaning task is initiated.
+stue_lys_av:
+  sequence:
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.stalampe
+      - light.stalampe_hjorne
+      - light.stalampe_piano
+      - light.taklist
+      - light.skjenklampe
+      - light.gronn_sofalampe
+      - light.sofabord
+      - light.spisebord
+      - light.peislampe
+  alias: Stue Lys Av
+  description: ''
+stue_lys_natta:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: light.skjenklampe
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.stalampe
+      - light.stalampe_hjorne
+      - light.stalampe_piano
+      - light.taklist
+      - light.gronn_sofalampe
+      - light.sofabord
+      - light.spisebord
+      - light.peislampe
+  alias: Stue Lys Natta
+  description: ''
+stue_filmmodus:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.skjenklampe
+      - light.sofabord
+      - light.spisebord
+      - light.stalampe_piano
+      - light.peislampe
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.stalampe_hjorne
+      - light.stalampe
+  - action: media_player.select_source
+    metadata: {}
+    data:
+      source: Plex
+    target:
+      entity_id: media_player.stue_tv
+  alias: Stue Filmmodus
+  description: Sets the living room for Plex viewing by adjusting lights and selecting
+    Plex input on the TV.
+  icon: fas:tv
+stue_lys_mer_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.taklist
+      - light.gronn_sofalampe
+      - light.spisebord
+      - light.skjenklampe
+      - light.stalampe
+      - light.stalampe_hjorne
+      - light.stalampe_piano
+      - light.peislampe
+  alias: Stue Lys Mer Lys
+  description: ''
+stue_lys_mindre_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.sofabord
+      - light.spisebord
+      - light.gronn_sofalampe
+      - light.peislampe
+      - light.skjenklampe
+      - light.stalampe_hjorne
+      - light.stalampe_piano
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.taklist
+      - light.stalampe
+  alias: Stue Lys Mindre Lys
+  description: ''
+kjokken_lys_av:
+  sequence:
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.benkbelysning
+      - light.kjokken_spot
+      - light.kjokken_matbord
+  alias: Kjøkken Lys Av
+  description: ''
+kjokken_lys_mer_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data:
+      brightness_pct: 100
+    target:
+      entity_id:
+      - light.kjokken_spot
+      - light.kjokken_matbord
+      - light.benkbelysning
+  alias: Kjøkken Lys Mer Lys
+  description: ''
+kjokken_lys_natt:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: light.kjokken_matbord
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.benkbelysning
+      - light.kjokken_spot
+  alias: Kjøkken Lys Natt
+  description: ''
+kjokken_lys_mindre_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.benkbelysning
+      - light.kjokken_matbord
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id: light.kjokken_spot
+  alias: Kjøkken Lys Mindre Lys
+  description: ''
+pult_lys_mer_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data:
+      brightness_pct: 100
+    target:
+      entity_id:
+      - light.homey_ring
+      - light.oljelampe_pc
+      - light.pultlampe
+      - light.pultskjermer
+  alias: Pult Lys Mer Lys
+  description: ''
+pult_lys_av:
+  sequence:
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.homey_ring
+      - light.oljelampe_pc
+      - light.pultlampe
+      - light.pultskjermer
+  alias: Pult Lys Av
+  description: ''
+pult_lys_mindre_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.pultlampe
+      - light.pultskjermer
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.skjerm_leselys
+      - light.oljelampe_pc
+      - light.homey_ring
+  alias: Pult Lys Mindre Lys
+  description: ''
+soverom_lys_av:
+  sequence:
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.nattlampe
+      - light.nattbordlampe
+      - light.vindulampe
+      - light.gitarlampe
+      - light.sebastian_taklampe
+      - light.overskap
+      - light.sideskap
+      - light.benk_benkbelysning
+  alias: Soverom Lys Av
+  description: ''
+soverom_lys_mer_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data:
+      brightness_pct: 100
+    target:
+      entity_id:
+      - light.gitarlampe
+      - light.vindulampe
+      - light.benk_benkbelysning
+      - light.overskap
+      - light.sideskap
+      - light.sebastian_taklampe
+      - light.nattbordlampe
+      - light.nattlampe
+      - light.pult_ledstrip
+  alias: Soverom Lys Mer Lys
+  description: ''
+soverom_lys_mindre_lys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.nattbordlampe
+      - light.pult_ledstrip
+      - light.sideskap
+      - light.overskap
+      - light.joka_palme_led_strip
+      - light.gitarlampe
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.sebastian_taklampe
+      - light.vindulampe
+      - light.nattlampe
+      - light.benk_benkbelysning
+  alias: Soverom Lys Mindre Lys
+  description: ''
+soverom_lys_kveldslys:
+  sequence:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.nattbordlampe
+      - light.pult_ledstrip
+      - light.sideskap
+      - light.gitarlampe
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+      - light.sebastian_taklampe
+      - light.vindulampe
+      - light.nattlampe
+      - light.benk_benkbelysning
+      - light.overskap
+      - light.joka_palme_led_strip
+  alias: Soverom Lys Kveldslys
+  description: ''
+kiosk_toggle:
+  sequence:
+  - action: input_boolean.toggle
+    metadata: {}
+    data: {}
+    target:
+      entity_id: input_boolean.kiosk_mode
+  alias: Kiosk Toggle
+  description: ''
+apne_dora:
+  sequence:
+  - action: lock.unlock
+    metadata: {}
+    data:
+      code: '270507'
+    target:
+      entity_id: lock.dorlas
+  alias: Åpne Døra
+  description: ''
+las_dora:
+  sequence:
+  - action: lock.lock
+    metadata: {}
+    data:
+      code: '270507'
+    target:
+      entity_id: lock.dorlas
+  alias: Lås Døra
+  description: ''
+task_add_task_duplicate:
+  sequence:
+  - action: todo.add_item
+    metadata: {}
+    data:
+      item: '{{ states(''input_text.tasks_title'') }}'
+      description: '{{ states(''input_number.tasks_priority'') | round() }}|{{ states(''input_text.tasks_icon'')
+        }}'
+    target:
+      entity_id:
+      - todo.mysmarthome
+  - action: input_text.set_value
+    metadata: {}
+    data:
+      value: ''
+    target:
+      entity_id:
+      - input_text.tasks_icon
+      - input_text.tasks_title
+  - action: input_number.set_value
+    metadata: {}
+    data:
+      value: 1
+    target:
+      entity_id:
+      - input_number.tasks_priority
+  alias: Task - Add task (Duplicate)
+  description: ''
+sunrise_simulator_manual:
+  alias: Sunrise Simulator Manual
+  sequence:
+  - parallel:
+    - if:
+      - condition: template
+        value_template: '{{ wled | count > 0 }}'
+      then:
+      - repeat:
+          for_each: '{{ wled }}'
+          sequence:
+          - data:
+              effect: Sunrise
+            target:
+              entity_id: '{{ repeat.item }}
+
+                '
+            action: light.turn_on
+          - data:
+              value: '{{ [(255 * (maxbri/100)) | int, 255] | min }}'
+            target:
+              entity_id: "{{ device_entities(device_id(repeat.item))\n      | select('search',
+                'number.')\n      | select('search', 'intensity')\n      | list }}\n"
+            action: number.set_value
+          - data:
+              value: '{{ [dur, 128] | min }}
+
+                '
+            target:
+              entity_id: "{{ device_entities(device_id(repeat.item))\n      | select('search',
+                'number.')\n      | select('search', 'speed')\n      | list }}\n"
+            action: number.set_value
+    - if:
+      - condition: template
+        value_template: '{{ bright | count > 0 }}'
+      then:
+      - repeat:
+          while:
+          - condition: template
+            value_template: "{{ repeat.index <= maxbri\n      and not ( repeat.index
+              > 1 \n                         and states.light\n                                    |
+              selectattr('entity_id', 'in', bright)\n                                    |
+              selectattr('state', 'eq', 'on') | list | count \n                                  ==
+              \ 0 ) }}\n"
+          sequence:
+          - variables:
+              bright: "{% if repeat.index > 1 %}\n  {{ expand(bright)\n        | selectattr('state',
+                'eq', 'on')\n        | map(attribute = 'entity_id')\n        | list
+                }}\n{% else %}\n  {{ bright }}\n{% endif %}\n"
+          - data:
+              transition: '{{ ( ( dur * 60 ) / (maxbri) ) | int }}
+
+                '
+              brightness_pct: '{{ [maxbri, ((repeat.index * maxbri) / 100)] | min
+                }}
+
+                '
+            target:
+              entity_id: '{{ bright }}
+
+                '
+            action: light.turn_on
+          - delay:
+              milliseconds: "{{ (  ( ( dur  * 60 ) / (maxbri) ) * 1000\n ) | int }}\n"
+    - if:
+      - condition: template
+        value_template: '{{ temp | count > 0 }}'
+      then:
+      - repeat:
+          while:
+          - condition: template
+            value_template: "{{ repeat.index <= 100\n      and not ( repeat.index
+              > 1 \n                         and states.light\n                                    |
+              selectattr('entity_id', 'in', temp)\n                                    |
+              selectattr('state', 'eq', 'on') | list | count \n                                  ==
+              \ 0 ) }}\n"
+          sequence:
+          - variables:
+              step: '{{ repeat.index }}'
+              temp: "{% if repeat.index > 1 %}\n  {{ expand(temp)\n        | selectattr('state',
+                'eq', 'on')\n        | map(attribute = 'entity_id')\n        | list
+                }}\n{% else %}\n  {{ temp }}\n{% endif %}\n"
+          - repeat:
+              for_each: '{{ temp }}'
+              sequence:
+              - data:
+                  transition: '{{ ( ( dur * 60) / 100 ) | int }}
+
+                    '
+                  brightness_pct: '{{ [ ((step * maxbri) / 100) | int, maxbri] | min
+                    }}
+
+                    '
+                target:
+                  entity_id: '{{ repeat.item }}
+
+                    '
+                action: light.turn_on
+              - data:
+                  color_temp: '{% set max = state_attr(repeat.item, ''max_mireds'')
+                    %} {% set min = state_attr(repeat.item, ''min_mireds'') %} {%
+                    set dec = (max-min) / 100 %} {{ iif( step < 100, ( max - (dec
+                    * (step - 1) ) ) | int, min ) }}
+
+                    '
+                target:
+                  entity_id: '{{ repeat.item }}
+
+                    '
+                action: light.turn_on
+          - delay:
+              milliseconds: "{{ (  ( ( dur  * 60 ) / 100 ) * 1000\n ) | int }}\n"
+    - if:
+      - condition: template
+        value_template: '{{ color | count > 0 }}'
+      then:
+      - repeat:
+          while:
+          - condition: template
+            value_template: "{{ repeat.index <= 100\n      and not ( repeat.index
+              > 1 \n                         and states.light\n                                    |
+              selectattr('entity_id', 'in', color)\n                                    |
+              selectattr('state', 'eq', 'on') | list | count \n                                  ==
+              0 ) }}\n"
+          sequence:
+          - variables:
+              color: "{% if repeat.index > 1 %}\n  {{ expand(color)\n        | selectattr('state',
+                'eq', 'on')\n        | map(attribute = 'entity_id')\n        | list
+                }}\n{% else %}\n  {{ color }}\n{% endif %}\n"
+          - data:
+              transition: '{{ (  ( dur * 60 ) / 100  ) | int }}
+
+                '
+              brightness_pct: '{{ [((repeat.index * maxbri) / 100) | int , maxbri]
+                | min }}
+
+                '
+            target:
+              entity_id: '{{ color }}
+
+                '
+            action: light.turn_on
+          - data:
+              rgb_color: "{% if repeat.index <= 20 %}\n  [255,0,0]\n{% elif repeat.index
+                <= 40  %}\n  [255,77,0]\n{% elif repeat.index <= 60 %}\n  [255,103,0]\n{%
+                elif repeat.index <= 80 %}\n  [255,129,0]  \n{% else %}\n  [255,167,0]\n{%
+                endif %}\n"
+            target:
+              entity_id: '{{ color }}
+
+                '
+            action: light.turn_on
+          - delay:
+              milliseconds: '{{ (  ( ( dur * 60 ) / 100 ) * 1000 ) | int }}
+
+                '
+  variables:
+    dur: '{{ duration | default(10, true) | int(10) }}
+
+      '
+    entities: "{% if target is defined %}\n  {% if target in states.light \n                     |
+      rejectattr('state','in', ['unavailable', 'unknown', None])\n                     |
+      selectattr('attributes.supported_color_modes', 'defined')\n                     |
+      rejectattr('attributes.supported_color_modes', 'eq', None)\n                     |
+      map(attribute='entity_id') \n                     | map('area_name')\n                     |
+      list %}\n    {% set target = area_entities(target) %}\n  {% endif %}\n  {{ expand(target)\n
+      \       | selectattr('domain', 'eq', 'light')\n        | selectattr('attributes.supported_color_modes',
+      'defined')\n        | rejectattr('attributes.supported_color_modes', 'eq', None)\n
+      \       | rejectattr('state', 'in', ['unavailable', 'unknown', None])\n        |
+      map(attribute='entity_id')\n        | list }}\n{% elif cct is not defined\n
+      \   and brightness is not defined %}\n  {{ states.light \n           | rejectattr('state','in',
+      ['unavailable', 'unknown', None])\n           | selectattr('attributes.supported_color_modes',
+      'defined')\n           | rejectattr('attributes.supported_color_modes', 'eq',
+      None)\n           | map(attribute='entity_id') \n           | list }}\n{% endif
+      %}\n"
+    bright: "{{ expand(entities)\n      | selectattr('attributes.supported_color_modes',
+      'eq', [ 'brightness'])\n      | map(attribute='entity_id')\n      | list + expand(
+      brightness | default([], true) )\n                  | rejectattr('state', 'in',
+      [ 'unavailable', 'unknown', None ])\n                  | rejectattr('entity_id',
+      'in', entities)\n                  | selectattr('attributes.supported_color_modes',
+      'defined')\n                  | selectattr('attributes.supported_color_modes',
+      'search', 'brightness')\n                  | map(attribute='entity_id')\n                  |
+      list  }}\n"
+    temp: "{{ expand(entities)\n      | selectattr('attributes.supported_color_modes',
+      'eq', [ 'color_temp'])\n      | map(attribute='entity_id')\n      | list + expand(
+      cct | default([], true) )\n                  | rejectattr('state', 'in', [ 'unavailable',
+      'unknown', None ])\n                  | rejectattr('entity_id', 'in', entities)\n
+      \                 | selectattr('attributes.supported_color_modes', 'defined')\n
+      \                 | selectattr('attributes.supported_color_modes', 'search',
+      'color_temp')\n                  | map(attribute='entity_id')\n                  |
+      list }}\n"
+    wled: "{{ integration_entities('wled')\n      | select('in', expand(entities)\n
+      \                       | selectattr('attributes.effect_list', 'defined')\n
+      \                       | selectattr('attributes.effect_list', 'search', 'Sunrise')\n
+      \                       | map(attribute='entity_id')\n                        |
+      list)\n      | list }}\n"
+    color: '{{ entities | reject(''in'', temp + wled + bright) | list  }}
+
+      '
+    maxbri: '{% set bri = max_brightness | default(100, true) | int(100) %} {{ bri
+      if bri < 100 else 100 }}
+
+      '
+  mode: single
+nrk_p1:
+  sequence:
+  - action: button.press
+    metadata: {}
+    target:
+      entity_id: button.preset_1
+    data: {}
+  alias: NRK P1
+  description: ''
+nrk_mp3:
+  sequence:
+  - action: button.press
+    metadata: {}
+    target:
+      entity_id:
+      - button.preset_5
+    data: {}
+  alias: NRK mp3
+  description: ''
+nrk_p3:
+  sequence:
+  - action: button.press
+    metadata: {}
+    target:
+      entity_id:
+      - button.preset_3
+    data: {}
+  alias: NRK P3
+  description: ''
+nrk_jazz:
+  sequence:
+  - action: button.press
+    metadata: {}
+    target:
+      entity_id:
+      - button.preset_2
+    data: {}
+  alias: NRK JAZZ
+  description: ''
+p4:
+  sequence:
+  - action: button.press
+    metadata: {}
+    target:
+      entity_id:
+      - button.preset_6
+    data: {}
+  alias: P4
+  description: ''
+p24:
+  sequence:
+  - action: button.press
+    metadata: {}
+    target:
+      entity_id:
+      - button.preset_4
+    data: {}
+  alias: P24
+  description: ''
+kiosk_toggle_2:
+  sequence:
+  - action: input_boolean.toggle
+    metadata: {}
+    target:
+      entity_id: input_boolean.kiosk_mode
+    data: {}
+  alias: Kiosk Toggle
+  description: ''
+
+###########
+# Vanning #
+###########
+
+vanning_start:
+  alias: Start vanning
+  description: Åpner en ventil, starter timer, og lukker ventilen automatisk
+  mode: parallel
+  fields:
+    ventil:
+      description: Ventil entity ID
+      selector:
+        entity:
+          domain: valve
+    timer:
+      description: Timer entity ID
+      selector:
+        entity:
+          domain: timer
+    varighet:
+      description: Varighet i minutter (1–120)
+      selector:
+        number:
+          min: 1
+          max: 120
+  sequence:
+    - action: valve.open_valve
+      target:
+        entity_id: "{{ ventil }}"
+    - action: timer.start
+      target:
+        entity_id: "{{ timer }}"
+      data:
+        duration: >-
+          {% set v = varighet | int %}
+          {{ '%02d:%02d:%02d' | format(v // 60, v % 60, 0) }}
+    - wait_for_trigger:
+        - trigger: event
+          event_type: timer.finished
+          event_data:
+            entity_id: "{{ timer }}"
+        - trigger: event
+          event_type: timer.cancelled
+          event_data:
+            entity_id: "{{ timer }}"
+      timeout: "02:05:00"
+    - action: valve.close_valve
+      target:
+        entity_id: "{{ ventil }}"
