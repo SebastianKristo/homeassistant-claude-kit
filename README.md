@@ -200,6 +200,18 @@ Configuration flows through an rsync-based pipeline:
 
 The dashboard is a standalone React app served as a `panel_custom` iframe. It connects to HA via WebSocket (embedded auth when in HA, token auth in dev mode).
 
+## Updating
+
+Your customizations (`config/`, `dashboard/src/lib/`, `.env`) are untracked and won't conflict with upstream changes:
+
+```bash
+git pull
+cd dashboard && npm install && npm run build && cd ..
+make deploy-dashboard
+```
+
+If the update includes new automation templates or dashboard features, re-run `setup-customize` in Claude Code to pick them up.
+
 ## Acknowledgments
 
 This project builds on the work of others:
