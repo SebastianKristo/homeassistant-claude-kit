@@ -63,7 +63,13 @@ export function LivePowerCard({
   const entities = useHass((s) => s.entities) as HassEntities;
 
   const totalW = toWatts(entities[config.totalPower]?.state, entities[config.totalPower]?.attributes?.unit_of_measurement as string) ?? 0;
-  const p1Amp = parseNumericState(entities[config.phase1]?.state) ?? 0;
+  const phases = [
+    { label: "L1", entity: config.phase1 },
+    { label: "L2", entity: config.phase2 },
+    { label: "L3", entity: config.phase3 },
+  ].map((p) => ({ label: p.label, amp: p.entity ? (parseNumericState(entities[p.entity]?.state) ?? 0) : 0, configured: Boolean(p.entity) }))
+   .filter((p) => p.configured);
+  const maxAmp = Math.max(...phases.map((p) => p.amp), 1);
 
   const tibberPrice  = parseNumericState(entities[config.tibberPrice]?.state);
   const todayArray   = entities[config.tibberPrice]?.attributes?.today;
@@ -123,19 +129,23 @@ export function LivePowerCard({
         </div>
       </div>
 
-      {/* Phase bar — L1 current (Amps) */}
-      {p1Amp > 0 && config.phase1 && (
-        <div className="flex items-center gap-2">
-          <span className="w-5 shrink-0 text-xs text-text-dim">L1</span>
-          <div className="flex-1 h-1.5 rounded-full bg-white/8 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-accent-cool transition-all duration-500"
-              style={{ width: `${Math.min(100, (p1Amp / 63) * 100)}%` }}
-            />
-          </div>
-          <span className="w-14 shrink-0 text-right text-xs tabular-nums text-text-secondary">
-            {p1Amp.toFixed(1)} A
-          </span>
+      {/* Phase bars — per-phase current (Amps) */}
+      {phases.length > 0 && (
+        <div className="space-y-1.5">
+          {phases.map((p) => (
+            <div key={p.label} className="flex items-center gap-2">
+              <span className="w-5 shrink-0 text-xs text-text-dim">{p.label}</span>
+              <div className="flex-1 h-1.5 rounded-full bg-white/8 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-accent-cool transition-all duration-500"
+                  style={{ width: `${Math.min(100, (p.amp / maxAmp) * 100)}%` }}
+                />
+              </div>
+              <span className="w-14 shrink-0 text-right text-xs tabular-nums text-text-secondary">
+                {p.amp > 0 ? `${p.amp.toFixed(1)} A` : "—"}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 

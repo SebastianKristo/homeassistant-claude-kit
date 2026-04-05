@@ -5,12 +5,13 @@ import { callService } from "home-assistant-js-websocket";
 import { Icon } from "@iconify/react";
 import {
   ALARM, GARAGE, LOCKS, CAMERAS, CONTACT_SENSORS, MOTION_SENSORS,
-  NIGHT_ALERTS, DOORBELL_RINGING,
+  NIGHT_ALERTS, DOORBELL_RINGING, GARAGE_DOORS,
 } from "../lib/entities";
 import type { CameraConfig } from "../lib/entities";
 import { CameraCard } from "../components/cards/CameraCard";
 import { CameraPopup } from "../components/popups/CameraPopup";
 import { SecurityHistoryCard } from "../components/cards/SecurityHistoryCard";
+import { FrigateHistoryCard } from "../components/cards/FrigateHistoryCard";
 import { ContactSensorPopup } from "../components/popups/ContactSensorPopup";
 import { LockPopup } from "../components/popups/LockPopup";
 import type { ContactConfig } from "../lib/entities";
@@ -108,40 +109,85 @@ export function SecurityView() {
         </div>
       </div>
 
-      {/* ── Dørlås ──────────────────────────────────────────────────── */}
-      <button
-        onClick={() => setLockPopupOpen(true)}
-        disabled={lockUnknown}
-        className={`flex flex-col gap-3 rounded-2xl p-4 text-left transition-colors w-full ${
-          lockUnknown ? "bg-bg-card opacity-50" :
-          isLocked ? "bg-accent-green/10 ring-1 ring-accent-green/20" : "bg-accent-warm/10 ring-1 ring-accent-warm/20"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <Icon
-            icon={isLocked ? "mdi:lock" : "mdi:lock-open-variant"}
-            width={22}
-            className={lockUnknown ? "text-text-dim" : isLocked ? "text-accent-green" : "text-accent-warm"}
-          />
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-            lockUnknown ? "bg-white/8 text-text-dim"
-            : isLocked ? "bg-accent-green/15 text-accent-green"
-            : "bg-accent-warm/15 text-accent-warm"
-          }`}>
-            {lockUnknown ? "—" : isLocked ? "Låst" : "Ulåst"}
-          </span>
-        </div>
-        <div>
-          <div className="text-sm font-medium">{LOCKS[0]?.name ?? "Lås"}</div>
-          <div className={`mt-2 w-full rounded-xl py-1.5 text-center text-xs font-medium ${
-            lockUnknown ? "bg-white/8 text-text-dim"
-            : isLocked ? "bg-accent-green/15 text-accent-green"
-            : "bg-accent-warm/15 text-accent-warm"
-          }`}>
-            {lockUnknown ? "—" : "Åpne detaljer"}
+      {/* ── Dørlås + Garasje side by side ──────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Dørlås */}
+        <button
+          onClick={() => setLockPopupOpen(true)}
+          disabled={lockUnknown}
+          className={`flex flex-col gap-3 rounded-2xl p-4 text-left transition-colors ${
+            lockUnknown ? "bg-bg-card opacity-50" :
+            isLocked ? "bg-accent-green/10 ring-1 ring-accent-green/20" : "bg-accent-warm/10 ring-1 ring-accent-warm/20"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <Icon
+              icon={isLocked ? "mdi:lock" : "mdi:lock-open-variant"}
+              width={22}
+              className={lockUnknown ? "text-text-dim" : isLocked ? "text-accent-green" : "text-accent-warm"}
+            />
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+              lockUnknown ? "bg-white/8 text-text-dim"
+              : isLocked ? "bg-accent-green/15 text-accent-green"
+              : "bg-accent-warm/15 text-accent-warm"
+            }`}>
+              {lockUnknown ? "—" : isLocked ? "Låst" : "Ulåst"}
+            </span>
           </div>
-        </div>
-      </button>
+          <div>
+            <div className="text-sm font-medium">{LOCKS[0]?.name ?? "Lås"}</div>
+            <div className={`mt-2 w-full rounded-xl py-1.5 text-center text-xs font-medium ${
+              lockUnknown ? "bg-white/8 text-text-dim"
+              : isLocked ? "bg-accent-green/15 text-accent-green"
+              : "bg-accent-warm/15 text-accent-warm"
+            }`}>
+              {lockUnknown ? "—" : "Åpne detaljer"}
+            </div>
+          </div>
+        </button>
+
+        {/* Garasje */}
+        {GARAGE_DOORS.length > 0 && (() => {
+          const { entity, name } = GARAGE_DOORS[0];
+          const state    = entities[entity]?.state;
+          const isOpen   = state === "open" || state === "opening";
+          const isMoving = state === "opening" || state === "closing";
+          return (
+            <button
+              onClick={() => {
+                if (!connection) return;
+                callService(connection, "cover", isOpen ? "close_cover" : "open_cover", undefined, { entity_id: entity });
+              }}
+              className={`flex flex-col gap-3 rounded-2xl p-4 text-left transition-colors ${
+                isOpen
+                  ? "bg-accent-warm/10 ring-1 ring-accent-warm/20"
+                  : "bg-bg-card hover:bg-bg-elevated"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <Icon
+                  icon={isOpen ? "mdi:garage-open" : "mdi:garage"}
+                  width={22}
+                  className={isOpen ? "text-accent-warm" : "text-text-dim"}
+                />
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  isOpen ? "bg-accent-warm/15 text-accent-warm" : "bg-white/8 text-text-dim"
+                }`}>
+                  {isOpen ? "Åpen" : "Lukket"}
+                </span>
+              </div>
+              <div>
+                <div className="text-sm font-medium">{name}</div>
+                <div className={`mt-2 w-full rounded-xl py-1.5 text-center text-xs font-medium ${
+                  isOpen ? "bg-accent-warm/15 text-accent-warm" : "bg-white/8 text-text-dim"
+                }`}>
+                  {isMoving ? (state === "opening" ? "Åpner…" : "Lukker…") : isOpen ? "Trykk for å lukke" : "Trykk for å åpne"}
+                </div>
+              </div>
+            </button>
+          );
+        })()}
+      </div>
 
       {/* ── Nattmodus ───────────────────────────────────────────────── */}
       <button
@@ -231,32 +277,42 @@ export function SecurityView() {
       </div>
 
       {/* ── Bevegelsessensorer ──────────────────────────────────────── */}
-      <div className="rounded-2xl bg-bg-card p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Icon icon="mdi:motion-sensor" width={16} className="text-text-secondary" />
-          <span className="text-sm font-medium">Bevegelse</span>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {MOTION_SENSORS.map((m) => {
-            const active = entities[m.entity]?.state === "on";
-            return (
-              <div
-                key={m.entity}
-                className={`rounded-xl px-2.5 py-2 text-center text-[11px] font-medium ${
-                  active
-                    ? "bg-accent-warm/15 text-accent-warm"
-                    : "bg-white/5 text-text-dim"
-                }`}
-              >
-                {m.name}
-                <div className={`text-[10px] font-normal mt-0.5 ${active ? "text-accent-warm" : "text-text-dim/60"}`}>
-                  {active ? "bevegelse" : "stille"}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {(() => {
+        const motionItems = MOTION_SENSORS.map((m) => ({ entity: m.entity, name: m.name }));
+        const personItems = CAMERAS
+          .filter((c) => c.personSensor !== "")
+          .map((c) => ({ entity: c.personSensor, name: `${c.name} person` }));
+        const allItems = [...motionItems, ...personItems];
+        if (allItems.length === 0) return null;
+        return (
+          <div className="rounded-2xl bg-bg-card p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Icon icon="mdi:motion-sensor" width={16} className="text-text-secondary" />
+              <span className="text-sm font-medium">Bevegelse</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {allItems.map((m) => {
+                const active = entities[m.entity]?.state === "on";
+                return (
+                  <div
+                    key={m.entity}
+                    className={`rounded-xl px-2.5 py-2 text-center text-[11px] font-medium ${
+                      active
+                        ? "bg-accent-warm/15 text-accent-warm"
+                        : "bg-white/5 text-text-dim"
+                    }`}
+                  >
+                    {m.name}
+                    <div className={`text-[10px] font-normal mt-0.5 ${active ? "text-accent-warm" : "text-text-dim/60"}`}>
+                      {active ? "bevegelse" : "stille"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Kameraer ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
@@ -269,6 +325,9 @@ export function SecurityView() {
           />
         ))}
       </div>
+
+      {/* ── Frigate hendelseslogg ───────────────────────────────────── */}
+      <FrigateHistoryCard />
 
       {/* ── Hendelseslogg ───────────────────────────────────────────── */}
       <SecurityHistoryCard

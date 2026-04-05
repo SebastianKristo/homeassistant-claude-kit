@@ -1,20 +1,33 @@
 # Loads default set of integrations. Do not remove.
 default_config:
 
+homeassistant:
+  packages:
+    klimastyring: !include packages/klimastyring.yaml
+
 # Load frontend themes from the themes folder
 frontend:
   themes: !include_dir_merge_named themes
   extra_module_url:
     - /local/fonts.js
 
+lovelace:
+  resources:
+    - url: /local/mysmart-floating-navbar.js
+      type: module
+
 http:
   use_x_forwarded_for: true
   trusted_proxies:
-    - 172.16.0.0/12
-    - 10.0.0.0/8
-    - 192.168.0.0/16
+    - 172.30.33.0/24
 
-automation: !include_dir_merge_list automations
+panel_custom:
+  - name: custom-dashboard-panel
+    sidebar_title: Dashboard
+    sidebar_icon: mdi:home-analytics
+    module_url: /local/custom-dashboard/panel.js
+
+automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 template: !include templates.yaml
@@ -33,10 +46,3 @@ group: !include groups.yaml
 light: !include lights.yaml
 cover: !include cover.yaml
 timer: !include timer.yaml
-
-panel_custom:
-  - name: custom-dashboard-panel
-    sidebar_title: Dashboard
-    sidebar_icon: mdi:view-dashboard
-    url_path: custom-dashboard
-    module_url: /local/custom-dashboard/panel.js

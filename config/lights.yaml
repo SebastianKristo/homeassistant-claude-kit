@@ -3,6 +3,20 @@
 #########################################
 
 - platform: group
+  name: Kjøkken Spot
+  unique_id: kjokken_spot
+  entities:
+    - light.kjokken_spot_1
+    - light.kjokken_spot_2
+
+- platform: group
+  name: Nattlampe
+  unique_id: nattlampe
+  entities:
+    - light.nattlampe_ned
+    - light.nattlampe_opp
+
+- platform: group
   name: Sebastian Taklampe
   unique_id: sebastian_taklampe
   entities:
@@ -10,6 +24,13 @@
     - light.taklampe_2
     - light.taklampe_3
     - light.taklampe_4
+
+- platform: group
+  name: Verandalamp
+  unique_id: verandalampe
+  entities:
+    - light.verandalampe_hoyre
+    - light.verandalampe_venstre
 
 #########################################
 #         LYS GRUPPER ROM               #

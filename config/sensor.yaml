@@ -22,7 +22,7 @@
 
 - platform: rest
   name: PostenDeliveryDays
-  resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=2850
+  resource: https://www.posten.no/levering-av-post/_/component/main/1/leftRegion/1?postCode=0771
   headers:
     x-requested-with: XMLHttpRequest
   scan_interval: 57600
@@ -33,6 +33,19 @@
 #              Transport                #
 #                                       #
 #########################################
+
+- platform: entur_public_transport
+  name: Transport
+  expand_platforms: true
+  show_on_map: true
+  stop_ids:
+    - "NSR:StopPlace:6354"
+    - "NSR:StopPlace:58273"
+    - "NSR:StopPlace:58381"
+    - "NSR:StopPlace:58353"
+    - "NSR:StopPlace:58291"
+    - "NSR:StopPlace:58275"
+    - "NSR:StopPlace:6510"
 
 #########################################
 #                                       #
@@ -62,11 +75,11 @@
 #########################################
 
 - platform: unifigateway
-  host: 192.168.0.1
+  host: 10.69.1.169
   port: 443
   version: UDMP-unifiOS
   username: gateway
-  password: Sdj2oi892"38SHejlash2a
+  password: kyxwiv-Zopged-wamcy0
   monitored_conditions:
     - www
     - wan
@@ -79,22 +92,17 @@
 #                                       #
 #########################################
 
-#########################################
+# Beregner øyeblikkelig vannforbruk i L/min basert på endring i total volum.
+# Brukes av sensor.vann_aktivitet_kategori i templates.yaml.
+
+- platform: derivative
+  name: "Vann flyt"
+  source: sensor.vannmaler_total_volume
+  unit_time: min
+  time_window: "00:02:00"
+  round: 1
 
 #########################################
-#                                       #
-#         ELBIL / UMÅLT FORBRUK         #
-#                                       #
-#########################################
-
-- platform: integration
-  source: sensor.umalt_forbruk
-  name: "Umålt forbruk energi"
-  unique_id: umalt_forbruk_energi
-  unit_prefix: k
-  unit_time: h
-  method: left
-  round: 3
 
 - platform: history_stats
   name: "TV Seertid I Dag"

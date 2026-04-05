@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { useHass, useUser } from "@hakit/core";
 import { callService } from "home-assistant-js-websocket";
-import { ScheduleEditor } from "../components/controls/ScheduleEditor";
-import { TempPresets } from "../components/controls/TempPresets";
-import {
-  SCHEDULE_EDITOR_CONFIG,
-  TEMP_PRESETS_CONFIG,
-} from "../lib/entities";
 import {
   MOTION_TIMEOUTS,
   TRANSITIONS,
@@ -16,7 +10,6 @@ import {
   SettingSection,
   SubSection,
   NumberRow,
-  // BooleanRow, NumericInputRow — uncomment as you add domain-specific settings
 } from "../components/controls/SettingControls";
 import { InfrastructureCard } from "../components/cards/InfrastructureCard";
 
@@ -40,6 +33,9 @@ export function SettingsView() {
     callService(connection, "input_number", "set_value", { value }, { entity_id: entityId });
   };
 
+  // suppress unused warning until advanced features are used
+  void showAdvanced;
+
   return (
     <div className="mx-auto max-w-2xl space-y-4 py-2">
       {/* Header with Advanced toggle */}
@@ -59,24 +55,25 @@ export function SettingsView() {
         )}
       </div>
 
-      {/* Schedules */}
-      <ScheduleEditor config={SCHEDULE_EDITOR_CONFIG} />
-
-      {/* Temperature Presets */}
-      <TempPresets config={TEMP_PRESETS_CONFIG} />
-
-      {/* Lighting */}
-      <SettingSection title="Lighting" icon="mdi:lightbulb-group-outline" defaultExpanded>
-        <SubSection title="Motion Timeouts">
+      {/* Motion / Lighting timeouts */}
+      <SettingSection title="Bevegelses-timeouts" icon="mdi:motion-sensor" defaultExpanded>
+        <SubSection title="Normale timeouts">
           {MOTION_TIMEOUTS.map((c) => (
             <NumberRow key={c.entity} config={c} onChange={setNumber} />
           ))}
         </SubSection>
-        <SubSection title="Transitions">
+        <SubSection title="Overganger">
           {TRANSITIONS.map((c) => (
             <NumberRow key={c.entity} config={c} onChange={setNumber} />
           ))}
         </SubSection>
+      </SettingSection>
+
+      {/* Climate */}
+      <SettingSection title="Temperaturmål" icon="mdi:thermometer">
+        {CLIMATE_SETTINGS.map((c) => (
+          <NumberRow key={c.entity} config={c} onChange={setNumber} />
+        ))}
       </SettingSection>
 
       {/* Infrastructure */}
@@ -84,14 +81,6 @@ export function SettingsView() {
         <InfrastructureCard />
       </SettingSection>
 
-      {/* Climate */}
-      <SettingSection title="Klima" icon="mdi:thermometer" defaultExpanded>
-        <SubSection title="Temperaturinnstillinger">
-          {CLIMATE_SETTINGS.map((c) => (
-            <NumberRow key={c.entity} config={c} onChange={setNumber} />
-          ))}
-        </SubSection>
-      </SettingSection>
       <div className="h-20" />
     </div>
   );

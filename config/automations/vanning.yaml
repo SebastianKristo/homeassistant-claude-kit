@@ -1,0 +1,172 @@
+# Vanning — planlagte automatiseringer
+# Kjør ved planlagt tid hvis dagen er aktivert og regnskjerm-betingelsen er oppfylt.
+# Regnskjerm: hopper over vanning hvis prognostisert nedbør (neste 6t) >= terskel.
+
+- id: vanning_kjokken_planlagt
+  alias: "Vanning: Kjøkken planlagt"
+  description: Åpner kjøkkenventilen på planlagt tid
+  trigger:
+    - trigger: time
+      at: input_datetime.vanning_kjokken_starttid
+  condition:
+    - condition: state
+      entity_id: input_boolean.vanning_aktivert
+      state: "on"
+    - condition: template
+      value_template: >
+        {% set weekday = now().weekday() %}
+        {% set days = [
+          'input_boolean.vanning_kjokken_man',
+          'input_boolean.vanning_kjokken_tir',
+          'input_boolean.vanning_kjokken_ons',
+          'input_boolean.vanning_kjokken_tor',
+          'input_boolean.vanning_kjokken_fre',
+          'input_boolean.vanning_kjokken_lor',
+          'input_boolean.vanning_kjokken_son'
+        ] %}
+        {{ is_state(days[weekday], 'on') }}
+    - condition: template
+      value_template: >
+        {% if is_state('input_boolean.vanning_regnskjerm', 'on') %}
+          {{ (states('sensor.vaervarsel_regn_neste_6_timer') | float(0))
+             < (states('input_number.vanning_regn_terskel') | float(2)) }}
+        {% else %}
+          true
+        {% endif %}
+  action:
+    - action: script.vanning_start
+      data:
+        ventil: valve.kjokken_vannventil_aktivert
+        timer: timer.vanning_kjokken
+        varighet: "{{ states('input_number.vanning_kjokken_varighet') | int(10) }}"
+  mode: single
+
+- id: vanning_veranda_bed_planlagt
+  alias: "Vanning: Veranda Bed planlagt"
+  description: Åpner Veranda Bed-ventilen på planlagt tid
+  trigger:
+    - trigger: time
+      at: input_datetime.vanning_veranda_bed_starttid
+  condition:
+    - condition: state
+      entity_id: input_boolean.vanning_aktivert
+      state: "on"
+    - condition: template
+      value_template: >
+        {% set weekday = now().weekday() %}
+        {% set days = [
+          'input_boolean.vanning_veranda_bed_man',
+          'input_boolean.vanning_veranda_bed_tir',
+          'input_boolean.vanning_veranda_bed_ons',
+          'input_boolean.vanning_veranda_bed_tor',
+          'input_boolean.vanning_veranda_bed_fre',
+          'input_boolean.vanning_veranda_bed_lor',
+          'input_boolean.vanning_veranda_bed_son'
+        ] %}
+        {{ is_state(days[weekday], 'on') }}
+    - condition: template
+      value_template: >
+        {% if is_state('input_boolean.vanning_regnskjerm', 'on') %}
+          {{ (states('sensor.vaervarsel_regn_neste_6_timer') | float(0))
+             < (states('input_number.vanning_regn_terskel') | float(2)) }}
+        {% else %}
+          true
+        {% endif %}
+  action:
+    - action: script.vanning_start
+      data:
+        ventil: valve.veranda_bed_vannventil
+        timer: timer.vanning_veranda_bed
+        varighet: "{{ states('input_number.vanning_veranda_bed_varighet') | int(10) }}"
+  mode: single
+
+- id: vanning_veranda_blomster_planlagt
+  alias: "Vanning: Veranda Blomster planlagt"
+  description: Åpner Veranda Blomster-ventilen på planlagt tid
+  trigger:
+    - trigger: time
+      at: input_datetime.vanning_veranda_blomster_starttid
+  condition:
+    - condition: state
+      entity_id: input_boolean.vanning_aktivert
+      state: "on"
+    - condition: template
+      value_template: >
+        {% set weekday = now().weekday() %}
+        {% set days = [
+          'input_boolean.vanning_veranda_blomster_man',
+          'input_boolean.vanning_veranda_blomster_tir',
+          'input_boolean.vanning_veranda_blomster_ons',
+          'input_boolean.vanning_veranda_blomster_tor',
+          'input_boolean.vanning_veranda_blomster_fre',
+          'input_boolean.vanning_veranda_blomster_lor',
+          'input_boolean.vanning_veranda_blomster_son'
+        ] %}
+        {{ is_state(days[weekday], 'on') }}
+    - condition: template
+      value_template: >
+        {% if is_state('input_boolean.vanning_regnskjerm', 'on') %}
+          {{ (states('sensor.vaervarsel_regn_neste_6_timer') | float(0))
+             < (states('input_number.vanning_regn_terskel') | float(2)) }}
+        {% else %}
+          true
+        {% endif %}
+  action:
+    - action: script.vanning_start
+      data:
+        ventil: valve.veranda_blomster_vannventil
+        timer: timer.vanning_veranda_blomster
+        varighet: "{{ states('input_number.vanning_veranda_blomster_varighet') | int(10) }}"
+  mode: single
+
+# Sikkerhet: lukk ventiler hvis timer kanselleres (f.eks. HA restart)
+- id: vanning_timer_ferdig_kjokken
+  alias: "Vanning: Lukk Kjøkken ved timer ferdig/kansellert"
+  trigger:
+    - trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.vanning_kjokken
+    - trigger: event
+      event_type: timer.cancelled
+      event_data:
+        entity_id: timer.vanning_kjokken
+  action:
+    - action: valve.close_valve
+      target:
+        entity_id: valve.kjokken_vannventil_aktivert
+  mode: single
+
+- id: vanning_timer_ferdig_veranda_bed
+  alias: "Vanning: Lukk Veranda Bed ved timer ferdig/kansellert"
+  trigger:
+    - trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.vanning_veranda_bed
+    - trigger: event
+      event_type: timer.cancelled
+      event_data:
+        entity_id: timer.vanning_veranda_bed
+  action:
+    - action: valve.close_valve
+      target:
+        entity_id: valve.veranda_bed_vannventil
+  mode: single
+
+- id: vanning_timer_ferdig_veranda_blomster
+  alias: "Vanning: Lukk Veranda Blomster ved timer ferdig/kansellert"
+  trigger:
+    - trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.vanning_veranda_blomster
+    - trigger: event
+      event_type: timer.cancelled
+      event_data:
+        entity_id: timer.vanning_veranda_blomster
+  action:
+    - action: valve.close_valve
+      target:
+        entity_id: valve.veranda_blomster_vannventil
+  mode: single

@@ -9,6 +9,9 @@ import {
   KOMFORTTEMP,
   BORTE_TEMP,
   SOMMERMODUS_TEMP,
+  HELGEMODUS_TEMP,
+  SEBASTIAN_NATTEMP,
+  OPPVARMING_TRINN,
 } from "../lib/entities";
 import type { NumberConfig, BooleanConfig, SettingConfig } from "../lib/settings-types";
 export type { NumberConfig, BooleanConfig, SettingConfig };
@@ -46,6 +49,12 @@ export const CLIMATE_SETTINGS: NumberConfig[] = [
     help: "Temperaturmål når hytta er tom (Borte-modus)." },
   { kind: "number", entity: SOMMERMODUS_TEMP, label: "Sommertemperatur", unit: "°C", min: 10, max: 22, step: 0.5,
     help: "Temperaturmål i sommer-modus — minimal frostsikring." },
+  { kind: "number", entity: HELGEMODUS_TEMP, label: "Helgemodus", unit: "°C", min: 15, max: 25, step: 0.5,
+    help: "Temperaturmål i helge-modus." },
+  { kind: "number", entity: SEBASTIAN_NATTEMP, label: "Nattemperatur", unit: "°C", min: 14, max: 22, step: 0.5,
+    help: "Temperaturmål om natten på Sebastians rom." },
+  { kind: "number", entity: OPPVARMING_TRINN, label: "Oppvarmingstrinn", unit: "°C", min: 0.5, max: 5, step: 0.5,
+    help: "Steglengde ved gradvis oppvarming." },
 ];
 
 // ── Add your own sections below ───────────────────────────────────────

@@ -1,0 +1,105 @@
+#########################################
+#                                       #
+#         ROM GRUPPER                   #
+#                                       #
+#########################################
+
+bad_gruppe:
+  name: Bad
+  icon: mdi:shower
+  entities:
+    - light.bad_speillampe
+
+do_gruppe:
+  name: Do
+  icon: mdi:toilet
+  entities:
+    - light.do_speillampe
+
+#########################################
+#                                       #
+#         MASTER GRUPPER                #
+#                                       #
+#########################################
+
+alle_lys_gruppe:
+  name: Alle Lys
+  icon: mdi:lightbulb-multiple
+  all: false
+  entities:
+    - group.kjokken_lys_gruppe
+    - group.stue_lys_gruppe
+    - group.soverom_lys_gruppe
+    - group.inngang_lys_gruppe
+    - group.ute_lys_gruppe
+    - group.pult_lys_gruppe
+    - group.veranda_lys_gruppe
+    - group.do_lys_gruppe
+    - group.bad_lys_gruppe
+    - group.trappegang_lys_gruppe
+    - group.rune_kontor_lys_gruppe
+    - group.rune_soverom_lys_gruppe
+    - group.cybele_soverom_lys_gruppe
+    - group.vaskegang_lys_gruppe
+
+alle_personer:
+  name: Familie
+  icon: mdi:account-multiple
+  entities:
+    - person.sebastian_kristo_jemtland
+    - person.cybele_kristo
+    - person.rune_jemtland
+
+#########################################
+#                                       #
+#         NOTIFY GRUPPER                #
+#                                       #
+#########################################
+
+notify_familie:
+  name: Familie Notifikasjoner
+  icon: mdi:account-multiple
+  entities:
+    - notify.mobile_app_sebastian_iphone
+    - notify.mobile_app_cybele_iphone
+    - notify.mobile_app_rune_iphone
+
+notify_foreldre:
+  name: Foreldre Notifikasjoner
+  icon: mdi:account-supervisor
+  entities:
+    - notify.mobile_app_cybele_iphone
+    - notify.mobile_app_rune_iphone
+
+notify_sebastian:
+  name: Sebastian Notifikasjoner
+  icon: mdi:account-supervisor
+  entities:
+    - notify.mobile_app_sebastian_iphone_16_pro
+    - notify.mobile_app_sebastian_oneplus_13
+    - notify.mobile_app_sebastian_pixel_9_pro_fold
+
+notify_rune:
+  name: Rune Notifikasjoner
+  icon: mdi:account-supervisor
+  entities:
+    - notify.mobile_app_cybele_iphone
+    - notify.mobile_app_rune_iphone
+
+notify_cybele:
+  name: Cybele Notifikasjoner
+  icon: mdi:account-supervisor
+  entities:
+    - notify.mobile_app_cybele_iphone
+    - notify.mobile_app_rune_iphone
+
+notify_alle:
+  name: Alle Notifikasjoner
+  icon: mdi:bell-ring
+  entities:
+    - notify.mobile_app_sebastian_iphone_16_pro
+    - notify.mobile_app_sebastian_oneplus_13
+    - notify.mobile_app_sebastian_pixel_9_pro_fold
+    - notify.mobile_app_cybele_iphone
+    - notify.mobile_app_rune_iphone
+    - notify.persistent_notification

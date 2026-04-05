@@ -597,16 +597,4 @@ vannforbruk_ukentlig:
 vannforbruk_manedlig:
   source: sensor.my_water_grip_total_volume_m3
   cycle: monthly
-
-#########################################
-#                                       #
-#         ELBIL / UMÅLT FORBRUK         #
-#                                       #
-#########################################
-
-umalt_forbruk_daglig:
-  source: sensor.umalt_forbruk_energi
-  cycle: daily
-  unique_id: umalt_forbruk_daglig
-  name: "Umålt forbruk daglig"
   name: "Vannforbruk Månedlig"

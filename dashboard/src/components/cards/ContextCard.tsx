@@ -4,14 +4,14 @@ import type { HassEntities } from "home-assistant-js-websocket";
 import { Icon } from "@iconify/react";
 import type { ContextConfig } from "../../lib/entities";
 import {
-  SUN_NEXT_RISING, SUN_NEXT_SETTING,
+  SUN_ENTITY, SUN_NEXT_RISING, SUN_NEXT_SETTING,
   MOON_PHASE, MOON_ILLUMINATION,
   LIGHTNING_ENTITY_ID, LIGHTNING_LAT, LIGHTNING_LON,
   POLLEN_SENSORS,
 } from "../../lib/entities";
 import { toWatts, formatPower, formatDuration, parseNumericState } from "../../lib/format";
 import { weatherIcon, conditionLabel } from "../../lib/weatherIcons";
-import { useWeatherForecast, type ForecastEntry } from "../../hooks/useWeatherForecast";
+import { useWeatherForecast, useWeatherForecastDaily, type ForecastEntry } from "../../hooks/useWeatherForecast";
 import { useAttributeTimeline } from "../../hooks/useStateHistory";
 import { useMinuteTick } from "../../hooks/useMinuteTick";
 
@@ -44,8 +44,13 @@ function moonPhaseLabel(phase: string): string {
   return phase.replace(/_/g, " ");
 }
 
+const DAY_NO = ["søn", "man", "tir", "ons", "tor", "fre", "lør"];
+
 export function ContextCard({ config, compact = false, minimal = false }: { config: ContextConfig; compact?: boolean; minimal?: boolean }) {
   const entities = useHass((s) => s.entities) as HassEntities;
+  const [showDailyForecast, setShowDailyForecast] = useState(false);
+  const [showFullDailyForecast, setShowFullDailyForecast] = useState(false);
+  const dailyForecast = useWeatherForecastDaily();
 
   const timeOfDay = entities[config.timeOfDay]?.state ?? "day";
 
@@ -94,9 +99,6 @@ export function ContextCard({ config, compact = false, minimal = false }: { conf
   const windSpeed = weatherAttrs.wind_speed as number | undefined;
   const windBearing = weatherAttrs.wind_bearing as number | undefined;
   const windGust = weatherAttrs.wind_gust_speed as number | undefined;
-  const uvIndex = weatherAttrs.uv_index as number | undefined;
-  const visibility = weatherAttrs.visibility as number | undefined;
-  const cloudCoverage = weatherAttrs.cloud_coverage as number | undefined;
   const apparentTemp = weatherAttrs.apparent_temperature as number | undefined;
   const forecastLow = parseNumericState(entities[config.forecastLow]?.state);
   const forecastHigh = parseNumericState(entities[config.forecastHigh]?.state);
@@ -104,11 +106,20 @@ export function ContextCard({ config, compact = false, minimal = false }: { conf
   const forecast = useWeatherForecast();
   const forecastSlice = forecast.slice(0, 24);
 
+  // UV, cloud, visibility — prefer entity attrs, fall back to first hourly forecast entry
+  const firstEntry = forecastSlice[0];
+  const uvIndex       = (weatherAttrs.uv_index      as number | undefined) ?? firstEntry?.uv_index;
+  const visibility    =  weatherAttrs.visibility     as number | undefined;
+  const cloudCoverage = (weatherAttrs.cloud_coverage as number | undefined) ?? firstEntry?.cloud_coverage;
+
   // Sun & Moon
-  const nextRising  = entities[SUN_NEXT_RISING]?.state;
-  const nextSetting = entities[SUN_NEXT_SETTING]?.state;
-  const moonPhase   = entities[MOON_PHASE]?.state;
-  const moonIllum   = parseNumericState(entities[MOON_ILLUMINATION]?.state);
+  const nextRising    = entities[SUN_NEXT_RISING]?.state;
+  const nextSetting   = entities[SUN_NEXT_SETTING]?.state;
+  const sunAttrs      = entities[SUN_ENTITY]?.attributes ?? {};
+  const sunElevation  = sunAttrs.elevation as number | undefined;
+  const sunAzimuth    = sunAttrs.azimuth   as number | undefined;
+  const moonPhase     = entities[MOON_PHASE]?.state;
+  const moonIllum     = parseNumericState(entities[MOON_ILLUMINATION]?.state);
 
   // Lightning — use last_changed on the entity id sensor to detect recent strikes
   // lat/lon are available via LIGHTNING_LAT / LIGHTNING_LON if distance calculations needed
@@ -204,6 +215,21 @@ export function ContextCard({ config, compact = false, minimal = false }: { conf
                 )}
               </span>
             )}
+            {uvIndex != null && uvIndex > 0 && (
+              <span className={`flex items-center gap-1 ${uvIndex >= 6 ? "text-accent-warm" : "text-text-dim"}`}>
+                <Icon icon="mdi:sun-wireless" width={13} />
+                UV {uvIndex.toFixed(0)}
+              </span>
+            )}
+            {(() => {
+              const rain = dailyForecast[0]?.precipitation;
+              return rain != null && rain > 0 ? (
+                <span className="flex items-center gap-1 text-accent-cool">
+                  <Icon icon="meteocons:rain" width={13} />
+                  {rain.toFixed(1)} mm
+                </span>
+              ) : null;
+            })()}
             {apparentTemp != null && (
               <span className="flex items-center gap-1 text-text-dim">
                 <Icon icon="mdi:thermometer-lines" width={13} />
@@ -219,7 +245,7 @@ export function ContextCard({ config, compact = false, minimal = false }: { conf
           </div>
         </div>
 
-        {/* Sun/moon row */}
+        {/* Sun/moon + forecast toggle row */}
         <div className="mt-3 flex items-center justify-between text-xs text-text-dim">
           <div className="flex items-center gap-3">
             {nextRising && (
@@ -249,8 +275,43 @@ export function ContextCard({ config, compact = false, minimal = false }: { conf
                 {moonIllum !== null && <span className="text-text-dim/60">· {Math.round(moonIllum)}%</span>}
               </span>
             )}
+            {dailyForecast.length > 1 && (
+              <button
+                onClick={() => setShowDailyForecast((v) => !v)}
+                className="flex items-center gap-0.5 rounded-lg bg-white/5 px-2 py-1 text-[11px] transition-colors hover:bg-white/10"
+              >
+                Varsel
+                <Icon icon={showDailyForecast ? "mdi:chevron-up" : "mdi:chevron-down"} width={13} />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Daily forecast — collapsible */}
+        {showDailyForecast && dailyForecast.length > 1 && (
+          <div className="mt-3 border-t border-white/5 pt-3 space-y-1.5">
+            {dailyForecast.slice(1, 6).map((d) => {
+              const date = new Date(d.datetime);
+              const prob = d.precipitation_probability;
+              return (
+                <div key={d.datetime} className="flex items-center gap-3">
+                  <span className="w-7 text-xs text-text-dim capitalize">{DAY_NO[date.getDay()]}</span>
+                  <Icon icon={weatherIcon(d.condition, false)} width={20} className="shrink-0" />
+                  <span className="flex-1 text-xs flex items-center gap-1.5">
+                    {prob > 0 && <span className="text-accent-cool">{Math.round(prob)}%</span>}
+                    {d.precipitation > 0 && <span className="text-text-dim">{d.precipitation.toFixed(1)} mm</span>}
+                  </span>
+                  <span className="text-xs text-text-dim tabular-nums">
+                    {d.templow !== undefined ? `${Math.round(d.templow)}°` : "—"}
+                  </span>
+                  <span className="w-8 text-right text-xs font-medium tabular-nums">
+                    {Math.round(d.temperature)}°
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
@@ -373,35 +434,53 @@ export function ContextCard({ config, compact = false, minimal = false }: { conf
             </span>
           )}
         </div>
-        {/* Secondary row: pressure, UV, visibility, cloud */}
-        {(pressure !== null || uvIndex != null || visibility != null || cloudCoverage != null) && (
-          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-text-dim">
-            {pressure !== null && (
-              <span className="flex items-center gap-1">
-                <Icon icon="meteocons:barometer" width={16} />
-                {Math.round(pressure)} hPa
-              </span>
-            )}
-            {uvIndex != null && uvIndex > 0 && (
-              <span className="flex items-center gap-1">
-                <Icon icon="mdi:sun-wireless" width={14} />
-                UV {uvIndex.toFixed(0)}
-              </span>
-            )}
-            {visibility != null && (
-              <span className="flex items-center gap-1">
-                <Icon icon="mdi:eye-outline" width={14} />
-                {visibility >= 10 ? `${visibility.toFixed(0)} km` : `${visibility.toFixed(1)} km`}
-              </span>
-            )}
-            {cloudCoverage != null && (
-              <span className="flex items-center gap-1">
-                <Icon icon="mdi:cloud-outline" width={14} />
-                {Math.round(cloudCoverage)}%
-              </span>
-            )}
-          </div>
-        )}
+        {/* Secondary row: UV, rain, visibility, cloud, pressure */}
+        {(() => {
+          const todayRain = dailyForecast[0]?.precipitation;
+          const nextHourRain = forecastSlice.find((e) => e.precipitation > 0)?.precipitation;
+          const rain = todayRain != null && todayRain > 0 ? todayRain : (nextHourRain ?? null);
+          const hasAny = pressure !== null || uvIndex != null || visibility != null || cloudCoverage != null || dailyForecast.length > 0;
+          if (!hasAny) return null;
+          return (
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-text-dim">
+              {pressure !== null && (
+                <span className="flex items-center gap-1">
+                  <Icon icon="meteocons:barometer" width={16} />
+                  {Math.round(pressure)} hPa
+                </span>
+              )}
+              {uvIndex != null && (
+                <span className={`flex items-center gap-1 ${uvIndex === 0 ? "opacity-40" : uvIndex >= 6 ? "text-accent-warm" : ""}`}>
+                  <Icon icon="mdi:sun-wireless" width={14} />
+                  UV {uvIndex.toFixed(0)}
+                </span>
+              )}
+              {rain != null && rain > 0 ? (
+                <span className="flex items-center gap-1 text-accent-cool">
+                  <Icon icon="meteocons:rain" width={14} />
+                  {rain.toFixed(1)} mm
+                </span>
+              ) : dailyForecast.length > 0 ? (
+                <span className="flex items-center gap-1 opacity-40">
+                  <Icon icon="meteocons:rain" width={14} />
+                  0 mm
+                </span>
+              ) : null}
+              {visibility != null && (
+                <span className="flex items-center gap-1">
+                  <Icon icon="mdi:eye-outline" width={14} />
+                  {visibility >= 10 ? `${visibility.toFixed(0)} km` : `${visibility.toFixed(1)} km`}
+                </span>
+              )}
+              {cloudCoverage != null && (
+                <span className="flex items-center gap-1">
+                  <Icon icon="mdi:cloud-outline" width={14} />
+                  {Math.round(cloudCoverage)}%
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Hourly forecast — always visible */}
@@ -409,13 +488,67 @@ export function ContextCard({ config, compact = false, minimal = false }: { conf
         <HourlyForecast entries={forecastSlice} />
       )}
 
+      {/* Daily forecast dropdown */}
+      {dailyForecast.length > 1 && (
+        <div className="mt-1">
+          <button
+            onClick={() => setShowFullDailyForecast((v) => !v)}
+            className="flex w-full items-center justify-between rounded-xl bg-bg-elevated px-3 py-2 text-xs transition-colors hover:bg-white/10"
+          >
+            <span className="text-text-dim">Varseldager</span>
+            <div className="flex items-center gap-1 text-text-dim">
+              <span>
+                {showFullDailyForecast ? "Skjul" : `${Math.round(dailyForecast[1]?.temperature ?? 0)}° / ${Math.round(dailyForecast[1]?.templow ?? 0)}° i morgen`}
+              </span>
+              <Icon icon={showFullDailyForecast ? "mdi:chevron-up" : "mdi:chevron-down"} width={13} />
+            </div>
+          </button>
+          {showFullDailyForecast && (
+            <div className="mt-2 space-y-1.5">
+              {dailyForecast.slice(1, 8).map((d) => {
+                const date = new Date(d.datetime);
+                const prob = d.precipitation_probability;
+                return (
+                  <div key={d.datetime} className="flex items-center gap-3 rounded-xl bg-bg-elevated px-3 py-2">
+                    <span className="w-7 text-xs text-text-dim capitalize">{DAY_NO[date.getDay()]}</span>
+                    <Icon icon={weatherIcon(d.condition, false)} width={20} className="shrink-0" />
+                    <span className="flex-1 text-xs">
+                      {prob > 0 && <span className="text-accent-cool">{Math.round(prob)}%</span>}
+                      {d.precipitation > 0 && (
+                        <span className="text-text-dim ml-1">{d.precipitation.toFixed(1)} mm</span>
+                      )}
+                    </span>
+                    <span className="text-xs text-text-dim tabular-nums">
+                      {d.templow !== undefined ? `${Math.round(d.templow)}°` : "—"}
+                    </span>
+                    <span className="w-8 text-right text-xs font-medium tabular-nums">
+                      {Math.round(d.temperature)}°
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Sun, Moon & Lightning row */}
       {(nextRising || nextSetting || moonPhase || recentLightning) && (
         <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-3">
           {/* Sol */}
-          {(nextRising || nextSetting) && (
+          {(nextRising || nextSetting || sunElevation != null) && (
             <div className="space-y-1">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-text-dim">Sol</div>
+              {sunElevation != null && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Icon icon="mdi:angle-acute" width={14} className={sunElevation > 0 ? "text-accent-warm" : "text-text-dim"} />
+                  <span className="text-text-secondary">Høyde</span>
+                  <span className="tabular-nums font-medium ml-auto">
+                    {sunElevation.toFixed(1)}°
+                    {sunAzimuth != null && <span className="text-text-dim ml-1">· {Math.round(sunAzimuth)}° az</span>}
+                  </span>
+                </div>
+              )}
               {nextRising && (
                 <div className="flex items-center gap-1.5 text-xs">
                   <Icon icon="mdi:weather-sunset-up" width={14} className="text-accent-warm" />

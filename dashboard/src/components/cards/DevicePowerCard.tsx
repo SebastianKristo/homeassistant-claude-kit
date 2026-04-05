@@ -7,23 +7,32 @@ import type { EnergyConfig } from "../../lib/entities";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Varme":       "mdi:fire",
-  "Elektronikk": "mdi:chip",
-  "Lys & annet": "mdi:lightning-bolt",
+  "Lys":         "mdi:lightbulb-group",
+  "Nettverk":    "mdi:router-wireless",
   "Elbil":       "mdi:car-electric",
+  "Hvitvarer":   "mdi:washing-machine",
+  "Annet":       "mdi:lightning-bolt",
+  "Elektronikk": "mdi:chip",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Varme":       "text-accent-warm",
-  "Elektronikk": "text-accent-cool",
-  "Lys & annet": "text-accent-green",
+  "Lys":         "text-accent-warm",
+  "Nettverk":    "text-accent-cool",
   "Elbil":       "text-accent",
+  "Hvitvarer":   "text-accent-green",
+  "Annet":       "text-text-secondary",
+  "Elektronikk": "text-accent-cool",
 };
 
 const BAR_COLORS: Record<string, string> = {
   "Varme":       "bg-accent-warm",
-  "Elektronikk": "bg-accent-cool",
-  "Lys & annet": "bg-accent-green",
+  "Lys":         "bg-accent-warm",
+  "Nettverk":    "bg-accent-cool",
   "Elbil":       "bg-accent",
+  "Hvitvarer":   "bg-accent-green",
+  "Annet":       "bg-white/20",
+  "Elektronikk": "bg-accent-cool",
 };
 
 type Tab = "effekt" | "forbruk";
@@ -79,15 +88,15 @@ export function DevicePowerCard({ config }: { config: EnergyConfig }) {
       {/* Categories */}
       <div className="divide-y divide-white/6">
         {categoryOrder.map((cat) => {
-          const group = devices.filter((d) => d.category === cat);
+          const group  = devices.filter((d) => d.category === cat);
           const isOpen = expanded.has(cat);
 
           const catW   = group.reduce((s, d) => s + (d.powerW ?? 0), 0);
           const catKwh = group.reduce((s, d) => s + (d.energyKwh ?? 0), 0);
           const hasKwh = group.some((d) => d.energyKwh !== null);
 
-          const labelColor = CATEGORY_COLORS[cat] ?? "text-text-secondary";
-          const barColor   = BAR_COLORS[cat]       ?? "bg-accent";
+          const labelColor  = CATEGORY_COLORS[cat] ?? "text-text-secondary";
+          const barColor    = BAR_COLORS[cat]       ?? "bg-accent";
 
           const sortedGroup = [...group].sort((a, b) =>
             tab === "effekt"
@@ -97,7 +106,7 @@ export function DevicePowerCard({ config }: { config: EnergyConfig }) {
 
           return (
             <div key={cat}>
-              {/* Category row — always visible, tap to expand */}
+              {/* Category header — tap to expand */}
               <button
                 onClick={() => toggleCat(cat)}
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.03] transition-colors"
@@ -120,54 +129,54 @@ export function DevicePowerCard({ config }: { config: EnergyConfig }) {
                 </div>
               </button>
 
-              {/* Expandable device list */}
+              {/* Expandable device rows */}
               {isOpen && (
-                <div className="divide-y divide-white/[0.04] border-t border-white/[0.04]">
-                  {sortedGroup.map((d) => {
-                    if (tab === "effekt") {
-                      const pct   = Math.min(100, ((d.powerW ?? 0) / globalMaxW) * 100);
-                      const isOff = d.powerW !== null && d.powerW < 2;
-                      return (
-                        <div key={d.name} className={`flex items-center gap-3 pl-8 pr-4 py-2.5 bg-white/[0.01] ${d.powerW === null ? "opacity-40" : ""}`}>
-                          <Icon icon={d.icon} width={14} className={`shrink-0 ${isOff ? "text-text-dim/40" : "text-text-dim"}`} />
-                          <div className="flex min-w-0 flex-1 flex-col gap-1">
-                            <div className="flex items-center justify-between">
-                              <span className={`text-xs ${isOff ? "text-text-dim" : "text-text-secondary"}`}>{d.name}</span>
-                              <span className={`text-xs tabular-nums font-medium ${isOff ? "text-text-dim" : ""}`}>
-                                {d.powerW !== null ? (isOff ? "av" : formatPower(d.powerW)) : "—"}
-                              </span>
-                            </div>
-                            {!isOff && (
-                              <div className="h-1 rounded-full bg-white/6 overflow-hidden">
-                                <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
-                              </div>
-                            )}
+              <div className="divide-y divide-white/[0.04] border-t border-white/[0.04]">
+                {sortedGroup.map((d) => {
+                  if (tab === "effekt") {
+                    const pct   = Math.min(100, ((d.powerW ?? 0) / globalMaxW) * 100);
+                    const isOff = d.powerW !== null && d.powerW < 2;
+                    return (
+                      <div key={d.name} className={`flex items-center gap-3 pl-8 pr-4 py-2 bg-white/[0.01] ${d.powerW === null ? "opacity-40" : ""}`}>
+                        <Icon icon={d.icon} width={13} className={`shrink-0 ${isOff ? "text-text-dim/40" : "text-text-dim"}`} />
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs ${isOff ? "text-text-dim" : "text-text-secondary"}`}>{d.name}</span>
+                            <span className={`text-xs tabular-nums font-medium ${isOff ? "text-text-dim" : ""}`}>
+                              {d.powerW !== null ? (isOff ? "av" : formatPower(d.powerW)) : "—"}
+                            </span>
                           </div>
-                        </div>
-                      );
-                    } else {
-                      const pct = Math.min(100, ((d.energyKwh ?? 0) / globalMaxKwh) * 100);
-                      return (
-                        <div key={d.name} className={`flex items-center gap-3 pl-8 pr-4 py-2.5 bg-white/[0.01] ${d.energyKwh === null ? "opacity-40" : ""}`}>
-                          <Icon icon={d.icon} width={14} className={`shrink-0 ${d.energyKwh === null ? "text-text-dim/40" : "text-text-dim"}`} />
-                          <div className="flex min-w-0 flex-1 flex-col gap-1">
-                            <div className="flex items-center justify-between">
-                              <span className={`text-xs ${d.energyKwh === null ? "text-text-dim" : "text-text-secondary"}`}>{d.name}</span>
-                              <span className={`text-xs tabular-nums font-medium ${d.energyKwh === null ? "text-text-dim" : ""}`}>
-                                {d.energyKwh !== null ? `${d.energyKwh.toFixed(2)} kWh` : "—"}
-                              </span>
+                          {!isOff && (
+                            <div className="h-1 rounded-full bg-white/6 overflow-hidden">
+                              <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
                             </div>
-                            {d.energyKwh !== null && (
-                              <div className="h-1 rounded-full bg-white/6 overflow-hidden">
-                                <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      );
-                    }
-                  })}
-                </div>
+                      </div>
+                    );
+                  } else {
+                    const pct = Math.min(100, ((d.energyKwh ?? 0) / globalMaxKwh) * 100);
+                    return (
+                      <div key={d.name} className={`flex items-center gap-3 pl-8 pr-4 py-2 bg-white/[0.01] ${d.energyKwh === null ? "opacity-40" : ""}`}>
+                        <Icon icon={d.icon} width={13} className={`shrink-0 ${d.energyKwh === null ? "text-text-dim/40" : "text-text-dim"}`} />
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs ${d.energyKwh === null ? "text-text-dim" : "text-text-secondary"}`}>{d.name}</span>
+                            <span className={`text-xs tabular-nums font-medium ${d.energyKwh === null ? "text-text-dim" : ""}`}>
+                              {d.energyKwh !== null ? `${d.energyKwh.toFixed(2)} kWh` : "—"}
+                            </span>
+                          </div>
+                          {d.energyKwh !== null && (
+                            <div className="h-1 rounded-full bg-white/6 overflow-hidden">
+                              <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                })}
+              </div>
               )}
             </div>
           );

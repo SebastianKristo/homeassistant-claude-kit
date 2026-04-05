@@ -11,27 +11,32 @@ import {
   QUICK_ACTIONS_CONFIG,
   ACTIVE_AUTOMATIONS_CONFIG,
   LOCKS,
-  ALARM,
   ENERGY_CONFIG,
-  ANKOMMER_I_MORGEN,
-  SOMMER_MODUS,
-  AWAY_MODE,
   ELEC_MAPS_CO2, ELEC_MAPS_FOSSIL,
   LYN_DISTANCE, LYN_AZIMUTH, LYN_COUNTER, LYN_AREA,
   LIGHTNING_LAT, LIGHTNING_LON,
   WASTE_RESTAVFALL, WASTE_MATAVFALL, WASTE_PAPIR, WASTE_PLAST, WASTE_GLASS_METALL,
+  VACUUM_CONFIG,
+  GARAGE_DOORS,
+  PRESENCE_SIMULATION,
+  WASHER_REMAINING, WASHER_TOTAL_MIN,
+  DISHWASHER_REMAINING, DISHWASHER_TOTAL_MIN,
 } from "../lib/entities";
 import { ContextCard } from "../components/cards/ContextCard";
 import { QuickActions } from "../components/cards/QuickActions";
 import { ActiveAutomations } from "../components/cards/ActiveAutomations";
+import { VacuumCard } from "../components/cards/VacuumCard";
 import { MediaPlayerCard } from "../components/cards/MediaPlayerCard";
 import { LockPopup } from "../components/popups/LockPopup";
-import { AlarmPopup } from "../components/popups/AlarmPopup";
 import { NorgesporisPopup } from "../components/popups/NorgesporisPopup";
 import { MediaPlayersPopup } from "../components/popups/MediaPlayersPopup";
+import { VacuumPopup } from "../components/popups/VacuumPopup";
 import { RemotePopup } from "../components/popups/RemotePopup";
+import { TransportPopup } from "../components/popups/TransportPopup";
+import { HvitvarePopup, useActiveAppliances } from "../components/popups/HvitvarePopup";
+import { MediaPopup } from "../components/popups/MediaPopup";
+import { GasPriceCard, GasPricePopup } from "../components/popups/GasPricePopup";
 import { BottomSheet } from "../components/popups/BottomSheet";
-import { PopoverSelect } from "../components/controls/PopoverSelect";
 import * as Dialog from "@radix-ui/react-dialog";
 
 /** Greeting based on hour */
@@ -144,6 +149,99 @@ function LightningSection({ entities }: { entities: HassEntities }) {
         </div>
       )}
     </div>
+  );
+}
+
+function WashingBanner({ entities, onOpen }: { entities: HassEntities; onOpen: () => void }) {
+  const washerMin = parseNumericState(entities[WASHER_REMAINING]?.state);
+  const dishMin   = parseNumericState(entities[DISHWASHER_REMAINING]?.state);
+
+  const washerOn = washerMin !== null && washerMin > 0;
+  const dishOn   = dishMin   !== null && dishMin   > 0;
+
+  if (!washerOn && !dishOn) return null;
+
+  const items: { name: string; icon: string; remaining: number; total: number }[] = [];
+  if (washerOn)  items.push({ name: "Vaskemaskin",  icon: "mdi:washing-machine", remaining: washerMin!, total: WASHER_TOTAL_MIN });
+  if (dishOn)    items.push({ name: "Oppvaskmaskin", icon: "mdi:dishwasher",      remaining: dishMin!,   total: DISHWASHER_TOTAL_MIN });
+
+  return (
+    <AnimatePresence>
+      {items.map(({ name, icon, remaining, total }) => {
+        const elapsed  = Math.max(0, total - remaining);
+        const progress = Math.min(1, elapsed / total);
+        const done     = remaining <= 0;
+        return (
+          <motion.button
+            key={name}
+            type="button"
+            onClick={onOpen}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="w-full text-left rounded-2xl bg-accent-green/8 ring-1 ring-accent-green/20 overflow-hidden transition-colors hover:brightness-110"
+          >
+            <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-green/20">
+                <Icon icon={icon} width={20} className="text-accent-green" style={{ animation: "pulse 2s ease-in-out infinite" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium">{name}</div>
+                <div className="text-xs text-accent-green">
+                  {done ? "Ferdig!" : `Ferdig om ${remaining} min`}
+                </div>
+              </div>
+              <Icon icon="mdi:chevron-right" width={16} className="text-text-dim shrink-0" />
+            </div>
+            <div className="h-1 bg-white/8 mx-4 mb-3 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-accent-green transition-all duration-60000"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+          </motion.button>
+        );
+      })}
+    </AnimatePresence>
+  );
+}
+
+function PresenceSimulationCard({ entities, connection }: { entities: HassEntities; connection: Connection | null }) {
+  if (!PRESENCE_SIMULATION) return null;
+  const state   = entities[PRESENCE_SIMULATION]?.state;
+  const isOn    = state === "on";
+  const isAvail = state !== undefined && state !== "unavailable";
+
+  const toggle = () => {
+    if (!connection || !isAvail) return;
+    callService(connection, "switch", isOn ? "turn_off" : "turn_on", undefined, { entity_id: PRESENCE_SIMULATION });
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={!isAvail}
+      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors ${
+        isOn ? "bg-accent-cool/10 ring-1 ring-accent-cool/25" : "bg-bg-card hover:bg-bg-elevated"
+      }`}
+    >
+      <Icon
+        icon={isOn ? "mdi:home-clock" : "mdi:home-clock-outline"}
+        width={20}
+        className={isOn ? "text-accent-cool" : "text-text-dim"}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium">Tilstedeværelsessimulering</div>
+        <div className={`text-xs ${isOn ? "text-accent-cool" : "text-text-dim"}`}>
+          {isOn ? "Aktiv — simulerer tilstedeværelse" : "Av"}
+        </div>
+      </div>
+      <div className={`h-5 w-9 rounded-full transition-colors ${isOn ? "bg-accent-cool" : "bg-white/15"} flex items-center px-0.5`}>
+        <div className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${isOn ? "translate-x-4" : "translate-x-0"}`} />
+      </div>
+    </button>
   );
 }
 
@@ -271,6 +369,68 @@ function WasteCard({ entities, onOpen }: { entities: HassEntities; onOpen: () =>
   );
 }
 
+// ── Entur inline card ────────────────────────────────────────────────────────
+
+const ENTUR_KEY_STOPS = [
+  { entity: "sensor.transport_hovseter", name: "Hovseter" },
+  { entity: "sensor.transport_smestad",  name: "Smestad" },
+];
+
+function enturType(routeId: string): "tbane" | "trikk" | "buss" {
+  const n = parseInt(routeId.replace("RUT:Line:", ""));
+  if (n >= 1 && n <= 5)   return "tbane";
+  if (n >= 11 && n <= 19) return "trikk";
+  return "buss";
+}
+
+const ENTUR_META = {
+  tbane: { icon: "mdi:subway-variant", color: "text-accent-cool" },
+  trikk: { icon: "mdi:tram",           color: "text-accent-green" },
+  buss:  { icon: "mdi:bus",            color: "text-accent-warm" },
+};
+
+function EnturCard({ entities, onOpen }: { entities: HassEntities; onOpen: () => void }) {
+  const rows = ENTUR_KEY_STOPS.map(({ entity, name }) => {
+    const e = entities[entity];
+    if (!e) return null;
+    const dueMin  = parseNumericState(e.state);
+    const route   = e.attributes?.route as string | undefined;
+    const routeId = e.attributes?.route_id as string | undefined;
+    return { name, dueMin, route, routeId };
+  }).filter(Boolean) as { name: string; dueMin: number | null; route?: string; routeId?: string }[];
+
+  if (rows.length === 0) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full flex items-center gap-3 rounded-2xl bg-bg-card px-4 py-3.5 text-left transition-colors hover:bg-bg-elevated active:bg-bg-elevated"
+    >
+      <Icon icon="mdi:bus-clock" width={17} className="text-accent-cool shrink-0" />
+      <div className="min-w-0 flex-1 flex items-center gap-3">
+        {rows.map(({ name, dueMin, route, routeId }) => {
+          const type = routeId ? enturType(routeId) : "buss";
+          const meta = ENTUR_META[type];
+          const routeNum = route?.split(" ")[0] ?? "—";
+          const minLabel = dueMin === null ? "—" : dueMin === 0 ? "nå" : `${dueMin} min`;
+          return (
+            <div key={name} className="flex items-center gap-1.5 shrink-0">
+              <Icon icon={meta.icon} width={13} className={`${meta.color} shrink-0`} />
+              <span className="text-sm font-semibold tabular-nums">{routeNum}</span>
+              <span className="text-xs text-text-dim">{name}</span>
+              <span className={`text-sm font-bold tabular-nums ${dueMin === 0 ? "text-accent-green animate-pulse" : "text-text-primary"}`}>
+                {minLabel}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <Icon icon="mdi:chevron-right" width={14} className="text-text-dim shrink-0" />
+    </button>
+  );
+}
+
 function LockBar({ entities, connection }: { entities: HassEntities; connection: Connection | null }) {
   if (LOCKS.length === 0) return null;
   const { entity, name } = LOCKS[0];
@@ -315,38 +475,6 @@ function LockBar({ entities, connection }: { entities: HassEntities; connection:
   );
 }
 
-const ALARM_META_MINI: Record<string, { label: string; icon: string; color: string; bg: string }> = {
-  disarmed:    { label: "Avvæpnet",  icon: "mdi:shield-off-outline",    color: "text-accent-green",  bg: "bg-accent-green/10" },
-  armed_away:  { label: "Borte",     icon: "mdi:shield-lock",           color: "text-accent-red",    bg: "bg-accent-red/12" },
-  armed_home:  { label: "Hjemme",    icon: "mdi:shield-home",           color: "text-accent-warm",   bg: "bg-accent-warm/12" },
-  armed_night: { label: "Natt",      icon: "mdi:shield-moon",           color: "text-accent",        bg: "bg-accent/12" },
-  pending:     { label: "Venter…",   icon: "mdi:shield-alert-outline",  color: "text-accent-warm",   bg: "bg-accent-warm/12" },
-  arming:      { label: "Væpner…",   icon: "mdi:shield-alert-outline",  color: "text-accent-warm",   bg: "bg-accent-warm/12" },
-  triggered:   { label: "ALARM!",    icon: "mdi:alarm-light",           color: "text-accent-red",    bg: "bg-accent-red/20" },
-};
-
-function AlarmMiniCard({ entities, onOpen }: { entities: HassEntities; connection: Connection | null; onOpen: () => void }) {
-  if (!ALARM) return null;
-  const alarmState = entities[ALARM]?.state ?? "unavailable";
-  const meta = ALARM_META_MINI[alarmState] ?? { label: alarmState, icon: "mdi:shield-outline", color: "text-text-dim", bg: "bg-bg-card" };
-
-  return (
-    <button
-      onClick={onOpen}
-      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors hover:brightness-110 ${meta.bg}`}
-    >
-      <Icon
-        icon={meta.icon}
-        width={20}
-        className={`${meta.color} ${alarmState === "triggered" ? "animate-pulse" : ""} shrink-0`}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-text-secondary">Alarm</div>
-        <div className={`text-xs font-semibold ${meta.color}`}>{meta.label}</div>
-      </div>
-    </button>
-  );
-}
 
 const FIVE_MIN_MS = 5 * 60 * 1000;
 
@@ -409,64 +537,6 @@ function LockWarningBanner({ entities }: { entities: HassEntities }) {
   );
 }
 
-const CLIMATE_MODES_HOME = [
-  { value: "hjemme",   label: "Hjemme",           icon: "mdi:home",               color: "text-accent-green", desc: "Normal oppvarming" },
-  { value: "ankommer", label: "Ankommer i morgen", icon: "mdi:home-clock",         color: "text-accent-cool",  desc: "Starter oppvarming til 22°C" },
-  { value: "sommer",   label: "Sommer-modus",      icon: "mdi:weather-sunny",      color: "text-accent-warm",  desc: "Grunntemp 16°C" },
-  { value: "borte",    label: "Borte",             icon: "mdi:home-export-outline", color: "text-text-dim",    desc: "Sparmodus" },
-];
-
-function ClimateSection({ entities, connection }: { entities: HassEntities; connection: Connection | null }) {
-  const awayMode = entities[AWAY_MODE]?.state === "on";
-  const ankommer = entities[ANKOMMER_I_MORGEN]?.state === "on";
-  const sommer   = entities[SOMMER_MODUS]?.state === "on";
-
-  const currentValue = sommer ? "sommer" : ankommer ? "ankommer" : awayMode ? "borte" : "hjemme";
-  const current = CLIMATE_MODES_HOME.find((m) => m.value === currentValue)!;
-
-  const setMode = (value: string) => {
-    if (!connection) return;
-    const on  = (e: string) => callService(connection, "input_boolean", "turn_on",  undefined, { entity_id: e });
-    const off = (e: string) => callService(connection, "input_boolean", "turn_off", undefined, { entity_id: e });
-    if (value === "hjemme")   { off(AWAY_MODE); off(ANKOMMER_I_MORGEN); off(SOMMER_MODUS); }
-    if (value === "ankommer") { off(AWAY_MODE); on(ANKOMMER_I_MORGEN);  off(SOMMER_MODUS); }
-    if (value === "sommer")   { off(AWAY_MODE); off(ANKOMMER_I_MORGEN); on(SOMMER_MODUS);  }
-    if (value === "borte")    { on(AWAY_MODE);  off(ANKOMMER_I_MORGEN); off(SOMMER_MODUS); }
-  };
-
-  return (
-    <div className="rounded-2xl bg-bg-card overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <Icon icon={current.icon} width={20} className={`${current.color} shrink-0`} />
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium">Klima</div>
-          <div className={`text-xs ${current.color}`}>{current.desc}</div>
-        </div>
-        <PopoverSelect
-          value={currentValue}
-          onSelect={setMode}
-          items={CLIMATE_MODES_HOME.map((m) => ({
-            value: m.value,
-            label: (
-              <span className="flex items-center gap-2">
-                <Icon icon={m.icon} width={16} className={m.color} />
-                <span>{m.label}</span>
-              </span>
-            ),
-          }))}
-          trigger={
-            <button className="flex items-center gap-1.5 rounded-xl bg-bg-elevated px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
-              <span className={current.color}>{current.label}</span>
-              <Icon icon="mdi:chevron-down" width={14} className="text-text-dim" />
-            </button>
-          }
-          align="end"
-          matchTriggerWidth={false}
-        />
-      </div>
-    </div>
-  );
-}
 
 export function HomeView() {
   const entities   = useHass((s) => s.entities) as HassEntities;
@@ -476,13 +546,18 @@ export function HomeView() {
   const greeting   = useGreeting(displayName);
 
   const [lockOpen, setLockOpen]               = useState(false);
-  const [alarmOpen, setAlarmOpen]             = useState(false);
   const [weatherOpen, setWeatherOpen]         = useState(false);
   const [savingsOpen, setSavingsOpen]         = useState(false);
   const [mediaPlayersOpen, setMediaPlayersOpen] = useState(false);
   const [remoteOpen, setRemoteOpen]           = useState(false);
   const [wasteOpen, setWasteOpen]             = useState(false);
+  const [vacuumOpen, setVacuumOpen]           = useState(false);
+  const [transportOpen, setTransportOpen]     = useState(false);
+  const [hvitvareOpen, setHvitvareOpen]       = useState(false);
+  const [mediaOpen, setMediaOpen]             = useState(false);
+  const [gasOpen, setGasOpen]                 = useState(false);
 
+  const activeAppliances = useActiveAppliances(entities);
   const stueRoom = useMemo(() => ROOMS.find((r) => r.tvPlatform === "apple_tv"), []);
 
   const activeMediaRooms = ROOMS.flatMap((room) => {
@@ -510,23 +585,55 @@ export function HomeView() {
 
         {/* Weather */}
         <button type="button" className="block w-full text-left" onClick={() => setWeatherOpen(true)}>
-          <ContextCard config={CONTEXT_CONFIG} compact={false} minimal />
+          <ContextCard config={CONTEXT_CONFIG} compact />
         </button>
       </div>
 
       <QuickActions config={QUICK_ACTIONS_CONFIG} />
 
-      {/* Dørlås + Alarm side by side */}
+      {/* Entur — kollektivtrafikk */}
+      <EnturCard entities={entities} onOpen={() => setTransportOpen(true)} />
+
+      {/* Dørlås + Garasje side by side */}
       <div className="grid grid-cols-2 gap-3">
         <LockBar entities={entities} connection={connection} />
-        <AlarmMiniCard entities={entities} connection={connection} onOpen={() => setAlarmOpen(true)} />
+        {GARAGE_DOORS.length > 0 && (() => {
+          const { entity, name } = GARAGE_DOORS[0];
+          const state    = entities[entity]?.state;
+          const isOpen   = state === "open" || state === "opening";
+          const isMoving = state === "opening" || state === "closing";
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                if (!connection) return;
+                callService(connection, "cover", isOpen ? "close_cover" : "open_cover", undefined, { entity_id: entity });
+              }}
+              className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors ${
+                isOpen ? "bg-accent-warm/12 ring-1 ring-accent-warm/25" : "bg-bg-card hover:bg-bg-elevated"
+              }`}
+            >
+              <Icon
+                icon={isOpen ? "mdi:garage-open" : "mdi:garage"}
+                width={20}
+                className={isOpen ? "text-accent-warm" : "text-text-dim"}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">{name}</div>
+                <div className={`text-xs ${isOpen ? "text-accent-warm" : "text-text-dim"}`}>
+                  {isMoving ? (state === "opening" ? "Åpner…" : "Lukker…") : isOpen ? "Åpen" : "Lukket"}
+                </div>
+              </div>
+            </button>
+          );
+        })()}
       </div>
 
       {/* Tibber strømpris */}
       <NorgesprisSavingsBar entities={entities} onTap={() => setSavingsOpen(true)} />
 
-      {/* Klimastyring */}
-      <ClimateSection entities={entities} connection={connection} />
+      {/* Drivstoffpriser */}
+      <GasPriceCard entities={entities} onOpen={() => setGasOpen(true)} />
 
       {/* Søppelhenting */}
       <WasteCard entities={entities} onOpen={() => setWasteOpen(true)} />
@@ -561,7 +668,7 @@ export function HomeView() {
           <Icon icon="mdi:speaker-wireless" width={20} className="text-accent-cool shrink-0" />
           <div className="min-w-0 flex-1">
             <div className="text-sm font-medium">Høyttalere & TV</div>
-            <div className="text-xs text-text-dim">Squeezebox · Apple TV</div>
+            <div className="text-xs text-text-dim">Yamaha RN602 · Apple TV</div>
           </div>
           <Icon icon="mdi:chevron-right" width={16} className="text-text-dim shrink-0" />
         </button>
@@ -577,12 +684,68 @@ export function HomeView() {
         )}
       </div>
 
+      {/* Vaskemaskin / oppvaskmaskin banner */}
+      <WashingBanner entities={entities} onOpen={() => setHvitvareOpen(true)} />
+
+      {/* Hvitvarer */}
+      <button
+        type="button"
+        onClick={() => setHvitvareOpen(true)}
+        className="w-full text-left rounded-2xl bg-bg-card overflow-hidden transition-colors hover:bg-bg-elevated active:bg-bg-elevated"
+      >
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Icon icon="mdi:washing-machine" width={20} className={activeAppliances.length > 0 ? "text-accent-green" : "text-text-dim"} />
+            <div>
+              <div className="text-sm font-medium">Hvitvarer</div>
+              <div className={`text-xs ${activeAppliances.length > 0 ? "text-accent-green" : "text-text-dim"}`}>
+                {activeAppliances.length > 0
+                  ? activeAppliances.map((a) => a.remainingMin && a.remainingMin > 0 ? `${a.name} · ${a.remainingMin} min` : a.name).join(", ")
+                  : "Ingen aktive"}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeAppliances.length > 0 && (
+              <span className="text-xs font-medium bg-accent-green/15 text-accent-green rounded-full px-2.5 py-1">
+                {activeAppliances.length} aktive
+              </span>
+            )}
+            <Icon icon="mdi:chevron-right" width={16} className="text-text-dim shrink-0" />
+          </div>
+        </div>
+      </button>
+
+      {/* Media — Plex, Radarr, Sonarr */}
+      <button
+        type="button"
+        onClick={() => setMediaOpen(true)}
+        className="w-full flex items-center gap-3 rounded-2xl bg-bg-card px-4 py-3 text-left transition-colors hover:bg-bg-elevated active:bg-bg-elevated"
+      >
+        <Icon icon="mdi:plex" width={20} className="text-accent-warm shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">Media</div>
+          <div className="text-xs text-text-dim">Plex · Radarr · Sonarr</div>
+        </div>
+        <Icon icon="mdi:chevron-right" width={16} className="text-text-dim shrink-0" />
+      </button>
+
+      {/* Tilstedeværelsessimulering */}
+      <PresenceSimulationCard entities={entities} connection={connection} />
+
+      {/* Støvsuger */}
+      <VacuumCard config={VACUUM_CONFIG} onOpen={() => setVacuumOpen(true)} />
+
       <ActiveAutomations config={ACTIVE_AUTOMATIONS_CONFIG} />
 
       <LockPopup open={lockOpen} onClose={() => setLockOpen(false)} />
-      <AlarmPopup open={alarmOpen} onClose={() => setAlarmOpen(false)} entities={entities} connection={connection} />
       <NorgesporisPopup open={savingsOpen} onClose={() => setSavingsOpen(false)} config={ENERGY_CONFIG} />
       <MediaPlayersPopup open={mediaPlayersOpen} onClose={() => setMediaPlayersOpen(false)} />
+      <VacuumPopup open={vacuumOpen} onClose={() => setVacuumOpen(false)} config={VACUUM_CONFIG} />
+      <TransportPopup open={transportOpen} onClose={() => setTransportOpen(false)} />
+      <HvitvarePopup open={hvitvareOpen} onClose={() => setHvitvareOpen(false)} />
+      <MediaPopup open={mediaOpen} onClose={() => setMediaOpen(false)} />
+      <GasPricePopup open={gasOpen} onClose={() => setGasOpen(false)} />
       {stueRoom && (
         <RemotePopup
           room={stueRoom}
@@ -631,7 +794,7 @@ export function HomeView() {
       <BottomSheet open={weatherOpen} onClose={() => setWeatherOpen(false)}>
         <Dialog.Title className="sr-only">Vær</Dialog.Title>
         <Dialog.Description className="sr-only">Detaljert værinformasjon og varsel</Dialog.Description>
-        <div className="overflow-y-auto px-4 pb-6 pt-2 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-6 pt-2 space-y-4">
           <ContextCard config={CONTEXT_CONFIG} />
           <LightningSection entities={entities} />
           <ElectricityMapSection entities={entities} />

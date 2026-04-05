@@ -6,7 +6,14 @@ import { MONITORED_INTEGRATIONS } from "./health-constants";
 import { BatteryRow } from "./BatteryRow";
 import { Gauge } from "./Gauge";
 import { ProxmoxPopup } from "../components/popups/ProxmoxPopup";
-import { HA_UPDATE_CORE, HA_UPDATE_OS, HA_UPDATE_SUPERVISOR } from "../lib/entities";
+import { useHass } from "@hakit/core";
+import type { HassEntities } from "home-assistant-js-websocket";
+import { parseNumericState } from "../lib/format";
+import {
+  HA_UPDATE_CORE, HA_UPDATE_OS, HA_UPDATE_SUPERVISOR,
+  PVE_CPU, PVE_MEM_PCT, PVE_DISK_USED, PVE_DISK_MAX,
+  PVE_UPTIME, PVE_STATUS, PVE_UNRAID_PCT, PVE_UNRAID_USED, PVE_UNRAID_TOTAL,
+} from "../lib/entities";
 
 function diskPct(used: number | null, max: number | null): number {
   if (used === null || max === null || max === 0) return 0;
@@ -15,13 +22,28 @@ function diskPct(used: number | null, max: number | null): number {
 
 export function SystemHealthView() {
   const [proxmoxOpen, setProxmoxOpen] = useState(false);
+  const allEntities = useHass((s) => s.entities) as HassEntities;
+
+  // Proxmox host
+  const pveCpu      = parseNumericState(allEntities[PVE_CPU]?.state);
+  const pveMem      = parseNumericState(allEntities[PVE_MEM_PCT]?.state);
+  const pveDiskUsed = parseNumericState(allEntities[PVE_DISK_USED]?.state);
+  const pveDiskMax  = parseNumericState(allEntities[PVE_DISK_MAX]?.state);
+  const pveUptime   = parseNumericState(allEntities[PVE_UPTIME]?.state);
+  const pveStatus   = allEntities[PVE_STATUS]?.state;
+  const unraidPct   = parseNumericState(allEntities[PVE_UNRAID_PCT]?.state);
+  const unraidUsed  = parseNumericState(allEntities[PVE_UNRAID_USED]?.state);
+  const unraidTotal = parseNumericState(allEntities[PVE_UNRAID_TOTAL]?.state);
+
+  const pveUptimeText = pveUptime !== null
+    ? pveUptime >= 24 ? `${Math.floor(pveUptime / 24)}d ${Math.floor(pveUptime % 24)}t` : `${pveUptime.toFixed(0)}t`
+    : null;
+
   const {
     cpu,
     ram,
     diskUsedGb,
     diskMaxGb,
-    netIn,
-    netOut,
     vmStatus,
     batteries,
     criticalBatteries,
@@ -176,7 +198,73 @@ export function SystemHealthView() {
         )}
       </div>
 
-      {/* System resources — HA VM (tap to open Proxmox popup) */}
+      {/* Proxmox host */}
+      <button
+        onClick={() => setProxmoxOpen(true)}
+        className="w-full text-left rounded-2xl bg-bg-card p-4 hover:bg-bg-elevated transition-colors"
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon icon="simple-icons:proxmox" width={16} className="text-accent-warm" />
+            <h2 className="text-sm font-medium text-text-secondary">Proxmox</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {pveStatus && (
+              <span className={`text-xs font-medium ${pveStatus === "online" ? "text-accent-green" : "text-accent-red"}`}>
+                {pveStatus}
+              </span>
+            )}
+            {pveUptimeText && (
+              <span className="text-[10px] text-text-dim">{pveUptimeText}</span>
+            )}
+            <Icon icon="mdi:chevron-right" width={14} className="text-text-dim" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <Gauge label="CPU" value={pveCpu !== null ? `${pveCpu.toFixed(1)}%` : undefined} />
+          <Gauge label="RAM" value={pveMem !== null ? `${pveMem.toFixed(1)}%` : undefined} />
+          <div className="flex items-center gap-3">
+            <span className="w-10 text-xs text-text-secondary">Disk</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-elevated">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  diskPct(pveDiskUsed, pveDiskMax) > 85 ? "bg-accent-red"
+                  : diskPct(pveDiskUsed, pveDiskMax) > 60 ? "bg-accent-warm"
+                  : "bg-accent-green"
+                }`}
+                style={{ width: `${diskPct(pveDiskUsed, pveDiskMax)}%` }}
+              />
+            </div>
+            <span className="w-20 text-right text-xs text-text-secondary">
+              {pveDiskUsed !== null && pveDiskMax !== null
+                ? `${pveDiskUsed.toFixed(0)} / ${pveDiskMax.toFixed(0)} GB`
+                : "—"}
+            </span>
+          </div>
+          {(unraidPct !== null || unraidUsed !== null) && (
+            <div className="flex items-center gap-3">
+              <span className="w-10 text-xs text-text-secondary">NAS</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-elevated">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    (unraidPct ?? 0) > 85 ? "bg-accent-red"
+                    : (unraidPct ?? 0) > 70 ? "bg-accent-warm"
+                    : "bg-accent-cool"
+                  }`}
+                  style={{ width: `${unraidPct ?? 0}%` }}
+                />
+              </div>
+              <span className="w-20 text-right text-xs text-text-secondary">
+                {unraidUsed !== null && unraidTotal !== null
+                  ? `${(unraidUsed / 1024).toFixed(1)} / ${(unraidTotal / 1024).toFixed(1)} TB`
+                  : unraidPct !== null ? `${unraidPct.toFixed(0)}%` : "—"}
+              </span>
+            </div>
+          )}
+        </div>
+      </button>
+
+      {/* HA VM */}
       <button
         onClick={() => setProxmoxOpen(true)}
         className="w-full text-left rounded-2xl bg-bg-card p-4 hover:bg-bg-elevated transition-colors"
@@ -217,27 +305,11 @@ export function SystemHealthView() {
             </div>
             <span className="w-20 text-right text-xs text-text-secondary">
               {diskUsedGb !== null && diskMaxGb !== null
-                ? `${diskUsedGb.toFixed(0)} / ${diskMaxGb.toFixed(0)} GB`
+                ? `${diskUsedGb.toFixed(1)} / ${diskMaxGb.toFixed(1)} GB`
                 : "—"}
             </span>
           </div>
         </div>
-        {(netIn !== null || netOut !== null) && (
-          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/5 pt-3">
-            <div className="text-center">
-              <div className="text-xs text-text-dim">↓ Inn</div>
-              <div className="text-sm font-semibold tabular-nums">
-                {netIn !== null ? `${netIn.toFixed(1)} MB/s` : "—"}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-text-dim">↑ Ut</div>
-              <div className="text-sm font-semibold tabular-nums">
-                {netOut !== null ? `${netOut.toFixed(1)} MB/s` : "—"}
-              </div>
-            </div>
-          </div>
-        )}
         <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
           {uptimeText && (
             <div className="flex items-center gap-2">

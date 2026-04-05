@@ -1,0 +1,47 @@
+#########################################
+#                                       #
+#         MAC COMMANDS                  #
+#                                       #
+#########################################
+
+launch_plex_mac:
+  url: "http://10.69.1.182:8080/launch_plex"
+  method: GET
+
+launch_safari_mac:
+  url: "http://10.69.1.182:8080/launch_safari"
+  method: GET
+
+launch_discord_mac:
+  url: "http://10.69.1.182:8080/launch_discord"
+  method: GET
+
+launch_orcaslicer_mac:
+  url: "http://10.69.1.182:8080/launch_orcaslicer"
+  method: GET
+
+mac_sleep_mac:
+  url: "http://10.69.1.177:8080/mac_sleep"
+  method: GET
+
+mac_wake:
+  url: "http://10.69.1.177:8080/mac_wake"
+  method: GET
+
+#########################################
+#                                       #
+#         WINDOWS COMMANDS              #
+#                                       #
+#########################################
+
+launch_chrome_win:
+  url: "http://10.69.1.199:8080/launch-chrome"
+  method: GET
+
+win_sleep_mac:
+  url: "http://10.69.1.199:8080/win_sleep"
+  method: GET
+
+win_wake:
+  url: "http://10.69.1.199:8080/win_wake"
+  method: GET

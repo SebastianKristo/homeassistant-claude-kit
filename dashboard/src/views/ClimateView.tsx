@@ -4,57 +4,55 @@ import type { HassEntities, Connection } from "home-assistant-js-websocket";
 import { callService } from "home-assistant-js-websocket";
 import { Icon } from "@iconify/react";
 import { parseNumericState } from "../lib/format";
-import { KOMFORTTEMP, BORTE_TEMP, SOMMERMODUS_TEMP, AWAY_MODE, ANKOMMER_I_MORGEN, SOMMER_MODUS } from "../lib/entities";
-import { PopoverSelect } from "../components/controls/PopoverSelect";
+import { KOMFORTTEMP, BORTE_TEMP, SOMMERMODUS_TEMP } from "../lib/entities";
 
-// ── Klimaenheter på Toten ──────────────────────────────────────────────────
-const HEATING_MODE = "input_select.heating_mode";
+// ── Klimaenheter på Oslo ───────────────────────────────────────────────────
+const HEATING_MODE      = "input_select.heating_mode";
 const CLIMATE_AUTOMATIONS = [
-  "automation.klima_synkroniser_innstillinger",
-  "automation.klima_nullstill_ankommer_flagg_ved_ankomst",
+  "automation.klimastyring_master_toggle",
+  "automation.klimamodus_master_synkronisering_klimastyring_claude",
 ];
 
 const CLIMATE_ROOMS = [
-  { entity: "climate.spisestue",                        label: "Stue / varmepumpe" },
-  { entity: "climate.bad_toten_gulvvarme",              label: "Bad" },
-  { entity: "climate.kjokken_toten_gulvvarme",          label: "Kjøkken" },
-  { entity: "climate.inngang_gulvvarme",                label: "Inngang" },
-  { entity: "climate.sebastian_panelovn_sebastian_panelovn", label: "Sebastian (panelovn)" },
+  { entity: "climate.stue_panelovn",       label: "Stue (panelovn)" },
+  { entity: "climate.stue_oljefyr",        label: "Stue (oljefyr)" },
+  { entity: "climate.kjokken_panelovn",    label: "Kjøkken (panelovn)" },
+  { entity: "climate.kjokken_gulvvarme",   label: "Kjøkken (gulvvarme)" },
+  { entity: "climate.bad_gulvvarme",       label: "Bad" },
+  { entity: "climate.do_gulvvarme",        label: "Do" },
+  { entity: "climate.vaskegang_gulvvarme", label: "Vaskegang" },
+  { entity: "climate.trappegang_panelovn", label: "Trappegang" },
 ];
 
 const BEDROOM_ROOMS = [
   {
     name: "Sebastian",
-    tempEntity: "sensor.sebastian_klimasensor_temperature",
-    climateEntity: "climate.sebastian_panelovn_sebastian_panelovn",
-    powerEntity: "sensor.sebastian_panelovn_stikkontakt_power",
-  },
-  {
-    name: "Rune",
-    tempEntity: "sensor.rune_klimasensor_temperatur",
-    climateEntity: "",
+    tempEntity: "",
+    climateEntity: "climate.sebastian_panelovn",
     powerEntity: "",
+    manualMode: "input_boolean.sebastian_manual_mode",
   },
   {
     name: "Cybele",
-    tempEntity: "sensor.cybele_klimasensor_temperature",
-    climateEntity: "",
-    powerEntity: "binary_sensor.cybele_soverom_power",
+    tempEntity: "",
+    climateEntity: "climate.cybele_panelovn",
+    powerEntity: "",
+    manualMode: "",
+  },
+  {
+    name: "Rune",
+    tempEntity: "",
+    climateEntity: "climate.trappegang_panelovn",
+    powerEntity: "",
+    manualMode: "",
   },
 ];
 
-const HEATING_MODE_META: Record<string, { label: string; icon: string; color: string }> = {
-  Komfort: { label: "Komfort",  icon: "mdi:home-thermometer",    color: "text-accent-cool" },
-  Økonomi: { label: "Økonomi",  icon: "mdi:piggy-bank-outline",  color: "text-accent-green" },
-  Borte:   { label: "Borte",    icon: "mdi:home-export-outline", color: "text-text-dim" },
-  Sommer:  { label: "Sommer",   icon: "mdi:weather-sunny",       color: "text-accent-warm" },
-};
-
-const PRESENCE_MODES = [
-  { value: "hjemme",   label: "Hjemme",           icon: "mdi:home",                color: "text-accent-green" },
-  { value: "ankommer", label: "Ankommer i morgen", icon: "mdi:home-clock",          color: "text-accent-cool" },
-  { value: "sommer",   label: "Sommer-modus",      icon: "mdi:weather-sunny",       color: "text-accent-warm" },
-  { value: "borte",    label: "Borte",             icon: "mdi:home-export-outline", color: "text-text-dim" },
+const PRESENCE_MODES_OSLO = [
+  { value: "Komfort", label: "Komfort",  icon: "mdi:home-thermometer",    color: "text-accent-cool",  desc: "Normal oppvarming" },
+  { value: "Økonomi", label: "Økonomi",  icon: "mdi:piggy-bank-outline",  color: "text-accent-green", desc: "Litt lavere temperatur" },
+  { value: "Borte",   label: "Borte",    icon: "mdi:home-export-outline", color: "text-text-dim",     desc: "Sparmodus" },
+  { value: "Sommer",  label: "Sommer",   icon: "mdi:weather-sunny",       color: "text-accent-warm",  desc: "Minimal oppvarming" },
 ];
 
 // ── Stepper for input_number ───────────────────────────────────────────────
@@ -134,21 +132,12 @@ export function ClimateView() {
   const entities   = useHass((s) => s.entities) as HassEntities;
   const connection = useHass((s) => s.connection) as Connection | null;
 
-  // ── Tilstedemodus (away_mode / ankommer / sommer) ──────────────────────
-  const awayMode = entities[AWAY_MODE]?.state === "on";
-  const ankommer = entities[ANKOMMER_I_MORGEN]?.state === "on";
-  const sommer   = entities[SOMMER_MODUS]?.state === "on";
-
-  const presenceValue = sommer ? "sommer" : ankommer ? "ankommer" : awayMode ? "borte" : "hjemme";;
+  // ── Tilstedemodus (input_select.heating_mode) ─────────────────────────
+  const presenceValue = entities[HEATING_MODE]?.state ?? "Komfort";
 
   const setPresence = (value: string) => {
     if (!connection) return;
-    const on  = (e: string) => callService(connection, "input_boolean", "turn_on",  undefined, { entity_id: e });
-    const off = (e: string) => callService(connection, "input_boolean", "turn_off", undefined, { entity_id: e });
-    if (value === "hjemme")   { off(AWAY_MODE); off(ANKOMMER_I_MORGEN); off(SOMMER_MODUS); }
-    if (value === "ankommer") { off(AWAY_MODE); on(ANKOMMER_I_MORGEN);  off(SOMMER_MODUS); }
-    if (value === "sommer")   { off(AWAY_MODE); off(ANKOMMER_I_MORGEN); on(SOMMER_MODUS);  }
-    if (value === "borte")    { on(AWAY_MODE);  off(ANKOMMER_I_MORGEN); off(SOMMER_MODUS); }
+    callService(connection, "input_select", "select_option", { option: value }, { entity_id: HEATING_MODE });
   };
 
   // ── Master toggle — klimaautomatiseringer ─────────────────────────────
@@ -162,16 +151,6 @@ export function ClimateView() {
     CLIMATE_AUTOMATIONS.forEach((id) =>
       callService(connection, "automation", svc, undefined, { entity_id: id })
     );
-  };
-
-  // ── Oppvarmingsmodus (input_select.heating_mode) ──────────────────────
-  const heatingMode    = entities[HEATING_MODE]?.state ?? "Komfort";
-  const heatingOptions = (entities[HEATING_MODE]?.attributes?.options as string[] | undefined) ?? Object.keys(HEATING_MODE_META);
-  const heatingMeta    = HEATING_MODE_META[heatingMode] ?? { label: heatingMode, icon: "mdi:thermometer", color: "text-text-secondary" };
-
-  const setHeatingMode = (option: string) => {
-    if (!connection) return;
-    callService(connection, "input_select", "select_option", { option }, { entity_id: HEATING_MODE });
   };
 
   return (
@@ -206,66 +185,34 @@ export function ClimateView() {
         </div>
       </button>
 
-      {/* ── Tilstedemodus ── */}
+      {/* ── Tilstedemodus (input_select.heating_mode) ── */}
       <div className="rounded-2xl bg-bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium">Tilstedemodus</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {PRESENCE_MODES.map((m) => {
+          {PRESENCE_MODES_OSLO.map((m) => {
             const isActive = m.value === presenceValue;
             return (
               <button
                 key={m.value}
                 onClick={() => setPresence(m.value)}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                className={`flex flex-col gap-1 rounded-xl px-3 py-2.5 text-left transition-colors ${
                   isActive ? "bg-accent/15 ring-1 ring-accent/30" : "bg-bg-elevated hover:bg-white/8"
                 }`}
               >
-                <Icon icon={m.icon} width={16} className={isActive ? m.color : "text-text-dim"} />
-                <span className={`text-sm font-medium ${isActive ? m.color : "text-text-dim"}`}>
-                  {m.label}
+                <div className="flex items-center gap-2">
+                  <Icon icon={m.icon} width={16} className={isActive ? m.color : "text-text-dim"} />
+                  <span className={`text-sm font-medium ${isActive ? m.color : "text-text-dim"}`}>
+                    {m.label}
+                  </span>
+                </div>
+                <span className={`text-[11px] ${isActive ? "text-text-secondary" : "text-text-dim/60"}`}>
+                  {m.desc}
                 </span>
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* ── Oppvarmingsmodus (input_select) ── */}
-      <div className="rounded-2xl bg-bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Icon icon={heatingMeta.icon} width={18} className={heatingMeta.color} />
-            <div>
-              <div className="text-sm font-medium">Oppvarmingsmodus</div>
-              <div className={`text-xs ${heatingMeta.color}`}>{heatingMeta.label}</div>
-            </div>
-          </div>
-          <PopoverSelect
-            value={heatingMode}
-            onSelect={setHeatingMode}
-            items={heatingOptions.map((opt) => {
-              const meta = HEATING_MODE_META[opt] ?? { label: opt, icon: "mdi:thermometer", color: "text-text-secondary" };
-              return {
-                value: opt,
-                label: (
-                  <span className="flex items-center gap-2">
-                    <Icon icon={meta.icon} width={16} className={meta.color} />
-                    <span>{meta.label}</span>
-                  </span>
-                ),
-              };
-            })}
-            trigger={
-              <button className="flex items-center gap-1.5 rounded-xl bg-bg-elevated px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10">
-                <span className={heatingMeta.color}>{heatingMode}</span>
-                <Icon icon="mdi:chevron-down" width={14} className="text-text-dim" />
-              </button>
-            }
-            align="end"
-            matchTriggerWidth={false}
-          />
         </div>
       </div>
 
@@ -284,7 +231,7 @@ export function ClimateView() {
         <span className="text-sm font-medium">Temperaturer</span>
         <div className="space-y-1.5">
           {/* Soverom med temperaturmåler */}
-          {BEDROOM_ROOMS.map(({ name, tempEntity, climateEntity, powerEntity }) => {
+          {BEDROOM_ROOMS.map(({ name, tempEntity, climateEntity, powerEntity, manualMode }) => {
             const temp    = parseNumericState(entities[tempEntity]?.state);
             const climate = climateEntity ? entities[climateEntity] : undefined;
             const target  = climate ? parseNumericState(climate.attributes?.temperature as string | undefined) : null;
@@ -296,31 +243,52 @@ export function ClimateView() {
               ? entities[powerEntity]?.state === "on"
               : null;
             const isHeating = isHeatingClimate || (powerW !== null && powerW > 10) || binaryOn === true;
+            const manualOn  = manualMode ? entities[manualMode]?.state === "on" : null;
+
+            const toggleManual = () => {
+              if (!connection || !manualMode) return;
+              callService(connection, "input_boolean", "toggle", undefined, { entity_id: manualMode });
+            };
 
             return (
-              <div key={name} className="flex items-center justify-between rounded-xl bg-bg-elevated px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <Icon
-                    icon={isHeating ? "mdi:radiator" : "mdi:radiator-off"}
-                    width={15}
-                    className={isHeating ? "text-accent-warm" : "text-text-dim"}
-                  />
-                  <span className="text-sm text-text-secondary">{name}</span>
-                  <span className="text-[10px] text-text-dim/60">soverom</span>
+              <div key={name} className="rounded-xl bg-bg-elevated px-3 py-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      icon={isHeating ? "mdi:radiator" : "mdi:radiator-off"}
+                      width={15}
+                      className={isHeating ? "text-accent-warm" : "text-text-dim"}
+                    />
+                    <span className="text-sm text-text-secondary">{name}</span>
+                    <span className="text-[10px] text-text-dim/60">soverom</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {target !== null && (
+                      <span className="text-xs text-text-dim">→ {target.toFixed(1)}°</span>
+                    )}
+                    {powerW !== null && powerW > 10 && (
+                      <span className="text-xs text-text-dim tabular-nums">{Math.round(powerW)} W</span>
+                    )}
+                    <span className={`text-sm font-semibold tabular-nums ${
+                      isHeating ? "text-accent-warm" : "text-text-secondary"
+                    }`}>
+                      {temp !== null ? `${temp.toFixed(1)}°` : "—"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {target !== null && (
-                    <span className="text-xs text-text-dim">→ {target.toFixed(1)}°</span>
-                  )}
-                  {powerW !== null && powerW > 10 && (
-                    <span className="text-xs text-text-dim tabular-nums">{Math.round(powerW)} W</span>
-                  )}
-                  <span className={`text-sm font-semibold tabular-nums ${
-                    isHeating ? "text-accent-warm" : "text-text-secondary"
-                  }`}>
-                    {temp !== null ? `${temp.toFixed(1)}°` : "—"}
-                  </span>
-                </div>
+                {manualOn !== null && (
+                  <button
+                    onClick={toggleManual}
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
+                      manualOn ? "bg-accent-warm/15 text-accent-warm" : "bg-white/5 text-text-dim hover:bg-white/8"
+                    }`}
+                  >
+                    <span>Manuell overstyring</span>
+                    <div className={`relative h-5 w-9 rounded-full transition-colors ${manualOn ? "bg-accent-warm" : "bg-white/12"}`}>
+                      <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${manualOn ? "left-4.5" : "left-0.5"}`} />
+                    </div>
+                  </button>
+                )}
               </div>
             );
           })}

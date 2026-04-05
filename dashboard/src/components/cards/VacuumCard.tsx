@@ -9,17 +9,23 @@ import type { VacuumConfig } from "../../lib/entities";
 /* ── Movement state metadata ─────────────────────────────────── */
 
 const MOVEMENT_META: Record<string, { label: string; color: string; icon: string }> = {
-  cleaning:    { label: "Cleaning",          color: "text-accent",       icon: "mdi:robot-vacuum" },
-  homing:      { label: "Returning to dock", color: "text-accent-cool",  icon: "mdi:home-import-outline" },
-  charging:    { label: "Charging",          color: "text-accent-green", icon: "mdi:battery-charging" },
-  idle:        { label: "Idle",              color: "text-text-secondary", icon: "mdi:robot-vacuum" },
-  pause:       { label: "Paused",            color: "text-accent-warm",  icon: "mdi:pause-circle" },
-  washing_mop: { label: "Washing mop",       color: "text-accent-cool",  icon: "mdi:water" },
-  alarm:       { label: "Error",             color: "text-accent-red",   icon: "mdi:alert-circle" },
-  reserve:     { label: "Scheduled",         color: "text-text-secondary", icon: "mdi:clock-outline" },
-  point:       { label: "Spot cleaning",     color: "text-accent",       icon: "mdi:target" },
-  after:       { label: "Finished",          color: "text-accent-green", icon: "mdi:check-circle" },
-  off:         { label: "Off",               color: "text-text-dim",     icon: "mdi:power" },
+  cleaning:    { label: "Cleaning",          color: "text-accent",         icon: "mdi:robot-vacuum" },
+  homing:      { label: "Returning to dock", color: "text-accent-cool",    icon: "mdi:home-import-outline" },
+  charging:    { label: "Charging",          color: "text-accent-green",   icon: "mdi:battery-charging" },
+  idle:        { label: "Idle",              color: "text-text-secondary",  icon: "mdi:robot-vacuum" },
+  pause:       { label: "Paused",            color: "text-accent-warm",    icon: "mdi:pause-circle" },
+  washing_mop: { label: "Washing mop",       color: "text-accent-cool",    icon: "mdi:water" },
+  alarm:       { label: "Error",             color: "text-accent-red",     icon: "mdi:alert-circle" },
+  reserve:     { label: "Scheduled",         color: "text-text-secondary",  icon: "mdi:clock-outline" },
+  point:       { label: "Spot cleaning",     color: "text-accent",         icon: "mdi:target" },
+  after:       { label: "Finished",          color: "text-accent-green",   icon: "mdi:check-circle" },
+  off:         { label: "Off",               color: "text-text-dim",       icon: "mdi:power" },
+  // Vacuum entity states (fallback when movement sensor is empty)
+  docked:      { label: "Dokket",            color: "text-accent-green",   icon: "mdi:battery-charging" },
+  returning:   { label: "Returnerer",        color: "text-accent-cool",    icon: "mdi:home-import-outline" },
+  error:       { label: "Feil",              color: "text-accent-red",     icon: "mdi:alert-circle" },
+  unavailable: { label: "Utilgjengelig",     color: "text-text-dim",       icon: "mdi:robot-vacuum-off" },
+  unknown:     { label: "Ukjent",            color: "text-text-dim",       icon: "mdi:robot-vacuum-off" },
 };
 
 const DEFAULT_META = { label: "Unknown", color: "text-text-dim", icon: "mdi:robot-vacuum-off" };
@@ -102,17 +108,18 @@ export function VacuumCard({ config, onOpen }: VacuumCardProps) {
   const connection = useHass((s) => s.connection);
 
   const battery = parseNumericState(entities[config.battery]?.state);
-  const movementRaw = entities[config.movement]?.state;
-  const movement = movementRaw ?? "idle";
-  const cleaningMode = entities[config.cleaningMode]?.state ?? "auto";
-  const turboMode = entities[config.turboMode]?.state ?? "off";
-  const lampState = entities[config.lamp]?.state ?? "off";
-  const powerE = entities[config.power];
-  const powerW = toWatts(powerE?.state, powerE?.attributes?.unit_of_measurement as string);
+  const movementRaw  = config.movement ? entities[config.movement]?.state : undefined;
+  // Fall back to vacuum entity state when movement sensor not configured
+  const vacuumState  = entities[config.vacuum]?.state;
+  const movement     = movementRaw ?? vacuumState ?? "idle";
+  const cleaningMode = config.cleaningMode ? (entities[config.cleaningMode]?.state ?? "auto") : "";
+  const turboMode    = config.turboMode    ? (entities[config.turboMode]?.state    ?? "off")  : "";
+  const lampState    = config.lamp         ? (entities[config.lamp]?.state         ?? "off")  : "off";
+  const powerE       = config.power ? entities[config.power] : undefined;
+  const powerW       = powerE ? toWatts(powerE?.state, powerE?.attributes?.unit_of_measurement as string) : null;
 
   const meta = MOVEMENT_META[movement] ?? DEFAULT_META;
-  // SmartThings vacuum state is permanently "unknown" — use movement sensor
-  const isUnavailable = movementRaw === undefined || movementRaw === "unavailable";
+  const isUnavailable = !vacuumState || vacuumState === "unavailable" || vacuumState === "unknown";
   const isActive = movement === "cleaning" || movement === "point";
   const isCharging = movement === "charging";
 
@@ -236,37 +243,45 @@ export function VacuumCard({ config, onOpen }: VacuumCardProps) {
           </div>
         )}
 
-        {/* Status chips — right-aligned on desktop */}
-        <div className="flex items-center gap-2 text-xs sm:ml-auto">
-          <div className="flex items-center gap-1.5 rounded-lg bg-bg-elevated px-2.5 py-1.5">
-            <Icon icon="mdi:broom" width={13} className="text-text-dim" />
-            <span className="text-text-secondary">
-              {MODE_LABELS[cleaningMode] ?? cleaningMode}
-            </span>
+        {/* Status chips — only when configured */}
+        {(cleaningMode || turboMode || config.lamp) && (
+          <div className="flex items-center gap-2 text-xs sm:ml-auto">
+            {cleaningMode && (
+              <div className="flex items-center gap-1.5 rounded-lg bg-bg-elevated px-2.5 py-1.5">
+                <Icon icon="mdi:broom" width={13} className="text-text-dim" />
+                <span className="text-text-secondary">
+                  {MODE_LABELS[cleaningMode] ?? cleaningMode}
+                </span>
+              </div>
+            )}
+            {turboMode && (
+              <div className="flex items-center gap-1.5 rounded-lg bg-bg-elevated px-2.5 py-1.5">
+                <Icon icon="mdi:fan" width={13} className="text-text-dim" />
+                <span className="text-text-secondary">
+                  {TURBO_LABELS[turboMode] ?? turboMode}
+                </span>
+              </div>
+            )}
+            {config.lamp && (
+              <motion.button
+                whileTap={{ scale: 0.93 }}
+                onClick={handleLampToggle}
+                disabled={isUnavailable}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors ${
+                  lampState === "on"
+                    ? "bg-accent-warm/20 text-accent-warm"
+                    : "bg-bg-elevated text-text-dim"
+                }`}
+              >
+                <Icon
+                  icon={lampState === "on" ? "mdi:flashlight" : "mdi:flashlight-off"}
+                  width={13}
+                />
+                <span className="text-xs">Lamp</span>
+              </motion.button>
+            )}
           </div>
-          <div className="flex items-center gap-1.5 rounded-lg bg-bg-elevated px-2.5 py-1.5">
-            <Icon icon="mdi:fan" width={13} className="text-text-dim" />
-            <span className="text-text-secondary">
-              {TURBO_LABELS[turboMode] ?? turboMode}
-            </span>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.93 }}
-            onClick={handleLampToggle}
-            disabled={isUnavailable}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors ${
-              lampState === "on"
-                ? "bg-accent-warm/20 text-accent-warm"
-                : "bg-bg-elevated text-text-dim"
-            }`}
-          >
-            <Icon
-              icon={lampState === "on" ? "mdi:flashlight" : "mdi:flashlight-off"}
-              width={13}
-            />
-            <span className="text-xs">Lamp</span>
-          </motion.button>
-        </div>
+        )}
       </div>
     </div>
   );

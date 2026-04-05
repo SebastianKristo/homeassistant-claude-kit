@@ -6,14 +6,6 @@ away_mode:
   name: Borte-modus
   icon: mdi:home-export-outline
 
-ankommer_i_morgen:
-  name: Ankommer i morgen
-  icon: mdi:home-clock
-
-sommer_modus:
-  name: Sommer-modus
-  icon: mdi:weather-sunny
-
 include_grid:
   name: Include Grid
   icon: mdi:currency-usd
@@ -41,9 +33,184 @@ stromstotte:
 kiosk_mode:
   name: Kiosk Mode
 
+sir_sweeps_a_lot_mamma_soverom:
+  name: Sir Sweeps A Lot Mamma Soverom
+
+sir_sweeps_a_lot_pappa_kontor:
+  name: Sir Sweeps A Lot Pappa Kontor
+
+sir_sweeps_a_lot_pappa_soverom:
+  name: Sir Sweeps A Lot Pappa Soverom
+
+sir_sweeps_a_lot_sebsatian_soverom:
+  name: Sir Sweeps A Lot Sebastian Soverom
+
+sir_sweeps_a_lot_trappegang:
+  name: Sir Sweeps A Lot Trappegang
+
+#########
+# Jul.  #
+#########
+
+julelys:
+  name: Julelys
+  icon: phu:christmas-tree-v2
+
+vis_julelys:
+  name: Vis Julelys
+
+vis_kamera:
+  name: Vis Kamera
+
+vis_alt:
+  name: Vis Alt
+
+pizza:
+  name: Pizza
+  icon: mdi:pizza
+
+vintermodus:
+  name: Vintermodus
+
+tibber_stromstyring:
+  name: Tibber Strømstyring
+
+feriemodus:
+  name: Feriemodus
+
+effekt_forbruk_energi_mysmarthome:
+  name: Effekt/Forbruk-Energi-MySmartHome
+
 #########
 # Homey #
 #########
 
 trigger_mqtt:
   name: Trigger Mqtt
+
+################
+# Automasjoner #
+################
+
+automation_ki_vaer_notifications:
+  name: Automation Ki Vær Notifications
+
+ruter_master:
+  name: Ruter Master
+
+automation_ki_vaskemaskin_notifications:
+  name: Automation Ki Vaskemaskin Notifications
+
+varsling_ved_hoy_effekt_toggle:
+  name: Varsling Ved Høy Effekt Toggle
+
+chores_laundry:
+  name: Chores Laundry
+
+#########
+# Vær   #
+#########
+
+varsel_vaer:
+  name: Varsel Vær
+
+klimastyring_master_toggle:
+  name: Klimastyring Master Toggle
+
+klimastyring_helg_manuell:
+  name: Klimastyring Helg Manuell
+
+alarm_til_homey:
+  name: Alarm Til Homey
+
+sebastian_manual_mode:
+  name: "Sebastian manuell modus"
+  icon: mdi:account-cog
+
+garasje_apen:
+  name: Garasje åpen
+
+###########
+# Vanning #
+###########
+
+vanning_aktivert:
+  name: Vanning Aktivert
+  icon: mdi:water
+
+vanning_regnskjerm:
+  name: Vanning Regnskjerm
+  icon: mdi:weather-rainy
+
+# Ukentlig program — Kjøkken
+vanning_kjokken_man:
+  name: Kjøkken Mandag
+  icon: mdi:water
+vanning_kjokken_tir:
+  name: Kjøkken Tirsdag
+  icon: mdi:water
+vanning_kjokken_ons:
+  name: Kjøkken Onsdag
+  icon: mdi:water
+vanning_kjokken_tor:
+  name: Kjøkken Torsdag
+  icon: mdi:water
+vanning_kjokken_fre:
+  name: Kjøkken Fredag
+  icon: mdi:water
+vanning_kjokken_lor:
+  name: Kjøkken Lørdag
+  icon: mdi:water
+vanning_kjokken_son:
+  name: Kjøkken Søndag
+  icon: mdi:water
+
+# Ukentlig program — Veranda Bed
+vanning_veranda_bed_man:
+  name: Veranda Bed Mandag
+  icon: mdi:flower
+vanning_veranda_bed_tir:
+  name: Veranda Bed Tirsdag
+  icon: mdi:flower
+vanning_veranda_bed_ons:
+  name: Veranda Bed Onsdag
+  icon: mdi:flower
+vanning_veranda_bed_tor:
+  name: Veranda Bed Torsdag
+  icon: mdi:flower
+vanning_veranda_bed_fre:
+  name: Veranda Bed Fredag
+  icon: mdi:flower
+vanning_veranda_bed_lor:
+  name: Veranda Bed Lørdag
+  icon: mdi:flower
+vanning_veranda_bed_son:
+  name: Veranda Bed Søndag
+  icon: mdi:flower
+
+# Ukentlig program — Veranda Blomster
+vanning_veranda_blomster_man:
+  name: Veranda Blomster Mandag
+  icon: mdi:flower-tulip
+vanning_veranda_blomster_tir:
+  name: Veranda Blomster Tirsdag
+  icon: mdi:flower-tulip
+vanning_veranda_blomster_ons:
+  name: Veranda Blomster Onsdag
+  icon: mdi:flower-tulip
+vanning_veranda_blomster_tor:
+  name: Veranda Blomster Torsdag
+  icon: mdi:flower-tulip
+vanning_veranda_blomster_fre:
+  name: Veranda Blomster Fredag
+  icon: mdi:flower-tulip
+vanning_veranda_blomster_lor:
+  name: Veranda Blomster Lørdag
+  icon: mdi:flower-tulip
+vanning_veranda_blomster_son:
+  name: Veranda Blomster Søndag
+  icon: mdi:flower-tulip
+
+ringeklokke_varsel:
+  name: Ringeklokke aktivt varsel
+  icon: mdi:doorbell
