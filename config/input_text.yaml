@@ -14,12 +14,3 @@ tasks_title:
     #         Norgespris Klimastyring       #
     #                                       #
     #########################################
-
-#########
-# Vær   #
-#########
-
-varsel_vaer_tekst:
-  name: Varsel Vær Tekst
-  min: 0
-  max: 100

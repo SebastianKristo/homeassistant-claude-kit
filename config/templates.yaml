@@ -1962,7 +1962,7 @@
       state: >
         {% set effekt = states('sensor.effektledd') | float(0) %}
         {% if effekt <= 2 %}
-          125
+          25
         {% elif effekt <= 5 %}
           190
         {% elif effekt <= 10 %}
@@ -2111,56 +2111,6 @@
           {% else %}
             "Allerede på høyeste trinn"
           {% endif %}
-
-    - name: "Effektledd Trinn"
-      unique_id: effektledd_trinn
-      icon: mdi:transmission-tower
-      state: >
-        {% set kw = states('sensor.strommaler_effekt') | float(0) / 1000 %}
-        {% if kw <= 2 %}
-          Trinn 1 · 0–2 kW
-        {% elif kw <= 5 %}
-          Trinn 2 · 2–5 kW
-        {% elif kw <= 10 %}
-          Trinn 3 · 5–10 kW
-        {% elif kw <= 15 %}
-          Trinn 4 · 10–15 kW
-        {% elif kw <= 20 %}
-          Trinn 5 · 15–20 kW
-        {% else %}
-          Trinn 6 · over 20 kW
-        {% endif %}
-      attributes:
-        trinn_nummer: >
-          {% set kw = states('sensor.strommaler_effekt') | float(0) / 1000 %}
-          {% if kw <= 2 %}1
-          {% elif kw <= 5 %}2
-          {% elif kw <= 10 %}3
-          {% elif kw <= 15 %}4
-          {% elif kw <= 20 %}5
-          {% else %}6{% endif %}
-        navaerende_kw: >
-          {{ (states('sensor.strommaler_effekt') | float(0) / 1000) | round(2) }}
-        maned_snittpeak_kw: >
-          {{ states('sensor.effektledd') | float(0) | round(2) }}
-        maned_trinn: >
-          {% set kw = states('sensor.effektledd') | float(0) %}
-          {% if kw <= 2 %}Trinn 1 · 0–2 kW
-          {% elif kw <= 5 %}Trinn 2 · 2–5 kW
-          {% elif kw <= 10 %}Trinn 3 · 5–10 kW
-          {% elif kw <= 15 %}Trinn 4 · 10–15 kW
-          {% elif kw <= 20 %}Trinn 5 · 15–20 kW
-          {% else %}Trinn 6 · over 20 kW{% endif %}
-        maned_kostnad_kr: >
-          {{ states('sensor.effektledd_kostnad') | float(0) | int }}
-        margin_til_neste_kw: >
-          {% set kw = states('sensor.effektledd') | float(0) %}
-          {% if kw <= 2 %}{{ (2 - kw) | round(2) }}
-          {% elif kw <= 5 %}{{ (5 - kw) | round(2) }}
-          {% elif kw <= 10 %}{{ (10 - kw) | round(2) }}
-          {% elif kw <= 15 %}{{ (15 - kw) | round(2) }}
-          {% elif kw <= 20 %}{{ (20 - kw) | round(2) }}
-          {% else %}0{% endif %}
 
     - name: "Strømregning Denne Måneden"
       unique_id: stromregning_denne_maneden
@@ -2453,35 +2403,46 @@
           {{ (spotpris + fastledd + nettleie + 39) | round(2) }}
 
 - sensor:
-    # sensor.fastledd — månedlig snitttopp i kW (alias for sensor.effektledd)
-    - name: "Fastledd"
-      unique_id: fastledd
-      icon: mdi:transmission-tower
-      unit_of_measurement: "kW"
-      state: >
-        {{ states('sensor.effektledd') | float(0) | round(2) }}
-
-    # sensor.fastledd_kostnad — månedlig kapasitetsledd-kostnad basert på korrekt snitttopp
-    # Elvia-priser 2025: ≤2→25, ≤5→190, ≤10→300, ≤15→410, ≤20→520, >20→660 kr/mnd
-    - name: "Fastledd Kostnad"
+    - name: "Fastledd kostnad"
       unique_id: fastledd_kostnad
-      icon: mdi:currency-usd
       unit_of_measurement: "kr"
-      device_class: monetary
       state: >
-        {% set p = states('sensor.effektledd') | float(0) %}
-        {% if p <= 2 %}
-          25
-        {% elif p <= 5 %}
-          190
-        {% elif p <= 10 %}
-          300
-        {% elif p <= 15 %}
-          410
-        {% elif p <= 20 %}
-          520
+        {% set p = states('sensor.strommaler_maks_effekt') | float %}
+
+        {# ---- FASTLEDDS-PRISER (kr per måned) ---- #}
+        {% set pris_0_2 = 120 %}
+        {% set pris_2_5 = 300 %}
+        {% set pris_5_10 = 410 %}
+        {% set pris_10_15 = 1100 %}
+        {% set pris_15_plus = 1500 %}
+
+        {% if p < 2000 %}
+          {{ pris_0_2 }}
+        {% elif p < 5000 %}
+          {{ pris_2_5 }}
+        {% elif p < 10000 %}
+          {{ pris_5_10 }}
+        {% elif p < 15000 %}
+          {{ pris_10_15 }}
         {% else %}
-          660
+          {{ pris_15_plus }}
+        {% endif %}
+
+- sensor:
+    - name: "Fastledd nivå"
+      unique_id: fastledd_niva
+      state: >
+        {% set p = states('sensor.strommaler_maks_effekt') | float / 1000 %}
+        {% if p < 2 %}
+          0–2 kW
+        {% elif p < 5 %}
+          2–5 kW
+        {% elif p < 10 %}
+          5–10 kW
+        {% elif p < 15 %}
+          10–15 kW
+        {% else %}
+          15+ kW
         {% endif %}
 
 - sensor:
@@ -2493,6 +2454,308 @@
     #         Norgespris Klimastyring.      #
     #                                       #
     #########################################
+
+# ==============================================================================
+# SENSORER - Konvertert til å bruke input_select.heating_mode
+# ==============================================================================
+
+- sensor:
+    # ============================================
+    # TEMPERATURMÅL
+    # ============================================
+
+    - name: "Target Temperature"
+      unique_id: target_temperature
+      unit_of_measurement: "°C"
+      state: >
+        {% set h = now().hour %}
+        {% set mode = states('input_select.heating_mode') %}
+
+        {% if mode == 'Sommer' %}
+          18
+        {% elif mode == 'Borte' %}
+          {{ states('input_number.away_temp') | float }}
+        {% elif mode == 'Økonomi' %}
+          {% if h >= 22 or h < 6 %}
+            {{ states('input_number.comfort_temp') | float }}
+          {% else %}
+            {{ (states('input_number.comfort_temp') | float - 1) }}
+          {% endif %}
+        {% else %}
+          {{ states('input_number.comfort_temp') | float }}
+        {% endif %}
+
+    - name: "Sebastian Target Temperature"
+      unique_id: sebastian_target_temperature
+      unit_of_measurement: "°C"
+      state: >
+        {% set h = now().hour %}
+        {% set mode = states('input_select.heating_mode') %}
+        {% set is_weekend = now().weekday() in [5, 6] %}
+        {% set is_friday = now().weekday() == 4 %}
+        {% set manual_mode = is_state('input_boolean.sebastian_manual_mode', 'on') %}
+
+        {% if manual_mode %}
+          {{ states('input_number.sebastian_manual_temp') | float }}
+        {% elif mode == 'Sommer' %}
+          18
+        {% elif mode == 'Borte' %}
+          {{ states('input_number.away_temp') | float }}
+        {% elif h >= 23 or h < 5 %}
+          19
+        {% elif h >= 5 and h < 8 %}
+          22
+        {% elif h >= 8 and h < 12 and not is_weekend and not is_friday %}
+          {{ states('input_number.away_temp') | float }}
+        {% else %}
+          {{ states('input_number.comfort_temp') | float }}
+        {% endif %}
+
+    - name: "Cybele Target Temperature"
+      unique_id: cybele_target_temperature
+      unit_of_measurement: "°C"
+      state: >
+        {% set h = now().hour %}
+        {% set mode = states('input_select.heating_mode') %}
+        {% set is_weekend = now().weekday() in [5, 6] %}
+
+        {% if mode == 'Sommer' %}
+          18
+        {% elif mode == 'Borte' %}
+          {{ states('input_number.away_temp') | float }}
+        {% elif h >= 8 and h < 12 and not is_weekend %}
+          {{ states('input_number.away_temp') | float }}
+        {% else %}
+          {{ states('input_number.comfort_temp') | float }}
+        {% endif %}
+
+    # ============================================
+    # STRØMPRIS OG PERIODE
+    # ============================================
+
+    - name: "Is Cooking Time"
+      unique_id: is_cooking_time
+      state: >
+        {% set h = now().hour %}
+        {{ (h >= 6 and h < 9) or (h >= 16 and h < 19) }}
+
+    # ============================================
+    # EFFEKTMÅLINGER
+    # ============================================
+
+    - name: "Total Heating Power"
+      unique_id: total_heating_power
+      unit_of_measurement: "kW"
+      device_class: power
+      state: >
+        {% set cybele = states('sensor.cybele_panelovn_current_power') | float(0) %}
+        {% set kjokken = states('sensor.kjokken_panelovn_current_power') | float(0) %}
+        {% set trappegang = states('sensor.trappegang_panelovn_current_power') | float(0) %}
+        {% set stue_panel = states('sensor.stue_panelovn_current_power') | float(0) %}
+        {% set stue_olje = states('sensor.stue_oljefyr_current_power') | float(0) %}
+        {% set sebastian = states('sensor.sebastian_panelovn_stikkontakt_effekt') | float(0) %}
+        {% set kjokken_gulv = states('sensor.kjokken_gulvvarme_power') | float(0) %}
+        {% set bad_gulv = states('sensor.bad_gulvvarme_effekt') | float(0) %}
+        {{ ((cybele + kjokken + trappegang + stue_panel + stue_olje + sebastian + kjokken_gulv + bad_gulv) / 1000) | round(2) }}
+
+    - name: "Total Panel Heaters Power"
+      unique_id: total_panel_heaters_power
+      unit_of_measurement: "kW"
+      device_class: power
+      state: >
+        {% set cybele = states('sensor.cybele_panelovn_current_power') | float(0) %}
+        {% set kjokken = states('sensor.kjokken_panelovn_current_power') | float(0) %}
+        {% set trappegang = states('sensor.trappegang_panelovn_current_power') | float(0) %}
+        {% set stue_panel = states('sensor.stue_panelovn_current_power') | float(0) %}
+        {% set sebastian = states('sensor.sebastian_panelovn_stikkontakt_effekt') | float(0) %}
+        {{ ((cybele + kjokken + trappegang + stue_panel + sebastian) / 1000) | round(2) }}
+
+    - name: "Total Floor Heating Power"
+      unique_id: total_floor_heating_power
+      unit_of_measurement: "kW"
+      device_class: power
+      state: >
+        {% set kjokken_gulv = states('sensor.kjokken_gulvvarme_power') | float(0) %}
+        {% set bad_gulv = states('sensor.bad_gulvvarme_effekt') | float(0) %}
+        {{ ((kjokken_gulv + bad_gulv) / 1000) | round(2) }}
+
+    # NYE SENSORER FOR SMART EFFEKTSTYRING
+
+    - name: "Power Non Heating"
+      unique_id: power_non_heating
+      unit_of_measurement: "kW"
+      device_class: power
+      state: >
+        {% set total = (states('sensor.strommaler_effekt') | float(0) / 1000) %}
+        {% set heating = states('sensor.total_heating_power') | float(0) %}
+        {{ (total - heating) | round(2) }}
+
+    - name: "Available Heating Power"
+      unique_id: available_heating_power
+      unit_of_measurement: "kW"
+      state: >
+        {% set total_limit = states('input_number.max_total_power_limit') | float(5) %}
+        {% set current_total = (states('sensor.strommaler_effekt') | float(0) / 1000) %}
+        {% set reserve = states('input_number.power_reserve_cooking') | float(2) %}
+        {% set available = total_limit - current_total - reserve %}
+        {{ [available, 0] | max | round(2) }}
+
+    - name: "Power Headroom"
+      unique_id: power_headroom
+      unit_of_measurement: "kW"
+      state: >
+        {% set total_limit = states('input_number.max_total_power_limit') | float(5) %}
+        {% set current_total = (states('sensor.strommaler_effekt') | float(0) / 1000) %}
+        {{ (total_limit - current_total) | round(2) }}
+
+    # ============================================
+    # HOUSE POWER STATUS
+    # ============================================
+
+    - name: "House Power Status"
+      unique_id: house_power_status
+      state: >
+        {% set total = states('sensor.strommaler_effekt') | float(0) / 1000 %}
+        {% set limit = states('input_number.max_total_power_limit') | float(5) %}
+        {% set threshold = states('input_number.power_warning_threshold') | float(85) / 100 %}
+        {% if total > limit %}
+          over_limit
+        {% elif total > (limit * threshold) %}
+          warning
+        {% else %}
+          ok
+        {% endif %}
+      attributes:
+        current_power: "{{ (states('sensor.strommaler_effekt') | float(0) / 1000) | round(2) }}"
+        power_limit: "{{ states('input_number.max_total_power_limit') | float(5) }}"
+        percentage: "{{ (((states('sensor.strommaler_effekt') | float(0) / 1000) / states('input_number.max_total_power_limit') | float(5)) * 100) | round(0) }}"
+        heating_power: "{{ states('sensor.total_heating_power') | float(0) }}"
+        other_power: "{{ ((states('sensor.strommaler_effekt') | float(0) / 1000) - states('sensor.total_heating_power') | float(0)) | round(2) }}"
+
+    # ============================================
+    # VARMESTYRING
+    # ============================================
+
+    - name: "Heating Time Elapsed"
+      unique_id: heating_time_elapsed
+      unit_of_measurement: "min"
+      state: >
+        {% set start = states('input_datetime.heating_group_start_time') %}
+        {% if start not in ['unknown', 'unavailable', ''] %}
+          {{ ((as_timestamp(now()) - as_timestamp(start)) / 60) | round(0) }}
+        {% else %}
+          0
+        {% endif %}
+
+    - name: "Rest of House Min Temp"
+      unique_id: rest_min_temp
+      unit_of_measurement: "°C"
+      state: >
+        {% set temps = [
+          state_attr('climate.kjokken_panelovn', 'current_temperature') | float(22),
+          state_attr('climate.trappegang_panelovn', 'current_temperature') | float(22)
+        ] %}
+        {{ temps | min }}
+
+    - name: "Stue Min Temp"
+      unique_id: stue_min_temp
+      unit_of_measurement: "°C"
+      state: >
+        {% set temps = [
+          states('sensor.stue_temp_og_fukt_temperatur') | float(22),
+          state_attr('climate.stue_panelovn', 'current_temperature') | float(22),
+          state_attr('climate.stue_oljefyr', 'current_temperature') | float(22)
+        ] %}
+        {{ temps | min }}
+
+- binary_sensor:
+    # ============================================
+    # PERIODE-DETEKSJON
+    # ============================================
+
+    - name: "Low Price Period"
+      unique_id: low_price_period
+      state: >
+        {% set h = now().hour %}
+        {% set is_weekend = now().weekday() in [5, 6] %}
+        {{ (h >= 22 or h < 6) or is_weekend }}
+
+    - name: "Is Weekend"
+      unique_id: is_weekend
+      state: >
+        {{ now().weekday() in [5, 6] }}
+
+    # ============================================
+    # EFFEKTOVERVÅKING
+    # ============================================
+
+    - name: "House Power Limit Exceeded"
+      unique_id: house_power_limit_exceeded
+      state: >
+        {{ (states('sensor.strommaler_effekt') | float(0) / 1000) > 
+            states('input_number.max_total_power_limit') | float(5) }}
+
+    - name: "Power Limit Critical"
+      unique_id: power_limit_critical
+      device_class: problem
+      state: >
+        {% set total = (states('sensor.strommaler_effekt') | float(0) / 1000) %}
+        {% set limit = states('input_number.max_total_power_limit') | float(5) %}
+        {% set threshold = limit - 0.3 %}
+        {{ total >= threshold }}
+      delay_on:
+        minutes: 2
+
+    - name: "Cooking Detected"
+      unique_id: cooking_detected
+      device_class: running
+      state: >
+        {% set platetopp = states('sensor.platetopp_power') | float(0) %}
+        {% set komfyr = states('sensor.komfyr_power') | float(0) %}
+        {{ (platetopp + komfyr) > 100 }}
+    # ============================================
+    # VARMESTYRING
+    # ============================================
+
+    - name: "Stue Needs Priority"
+      unique_id: stue_needs_priority
+      device_class: cold
+      state: >
+        {{ states('sensor.stue_min_temp') | float < 
+            states('input_number.heating_min_temp') | float }}
+
+    - name: "Rest Needs Priority"
+      unique_id: rest_needs_priority
+      device_class: cold
+      state: >
+        {{ states('sensor.rest_of_house_min_temp') | float < 
+            states('input_number.heating_min_temp') | float }}
+
+    - name: "Heating Timeout"
+      unique_id: heating_timeout
+      state: >
+        {{ states('sensor.heating_time_elapsed') | int > 
+            states('input_number.heating_max_time') | int }}
+
+    - name: "Stue Heating Active"
+      unique_id: stue_heating_active
+      device_class: heat
+      state: >
+        {% set stue_panel = states('sensor.stue_panelovn_current_power') | float(0) %}
+        {% set stue_olje = states('sensor.stue_oljefyr_current_power') | float(0) %}
+        {{ (stue_panel + stue_olje) > 100 }}
+
+    - name: "Rest of House Heating Active"
+      unique_id: rest_heating_active
+      device_class: heat
+      state: >
+        {% set cybele = states('sensor.cybele_panelovn_current_power') | float(0) %}
+        {% set sebastian = states('sensor.sebastian_panelovn_stikkontakt_effekt') | float(0) %}
+        {% set kjokken = states('sensor.kjokken_panelovn_current_power') | float(0) %}
+        {% set trappegang = states('sensor.trappegang_panelovn_current_power') | float(0) %}
+        {% set kjokken_gulv = states('sensor.kjokken_gulvvarme_power') | float(0) %}
+        {% set bad_gulv = states('sensor.bad_gulvvarme_effekt') | float(0) %}
+        {{ (cybele + sebastian + kjokken + trappegang + kjokken_gulv + bad_gulv) > 100 }}
 
 # batteries
 - sensor:
@@ -2529,8 +2792,7 @@
         {% set seconds = total_seconds % 60 %}
         {{ "{:02}:{:02}:{:02}".format(hours, minutes, seconds) }}
 - sensor:
-    - name: "Rolf All"
-      state:
+    - state:
         "{{ states.input_boolean.sir_sweeps_a_lot_trappegang.state == 'on' or states.input_boolean.sir_sweeps_a_lot_sebsatian_soverom.state
         == 'on' or states.input_boolean.sir_sweeps_a_lot_pappa_soverom.state == 'on' or states.input_boolean.sir_sweeps_a_lot_pappa_kontor.state
         == 'on' or states.input_boolean.sir_sweeps_a_lot_mamma_soverom.state == 'on' }}"
@@ -3081,518 +3343,31 @@
           {% set scores = scores + [10] %}
         {% endif %}
 
-        {{ (scores | sum / scores | length) | round(1) }}
-
-# Car
-
 - sensor:
-    - name: "Ioniq Custom"
-      unique_id: "ioniq_custom"
-      state: "Yo"
-      attributes:
-        ladetid_hours: >
-          {% set battery_level = states('sensor.tesla_model_y_batteri_batteriniva') | float %}
-          {% set soc = states('input_number.tesla_model_y_ladegrense') | round() %}
-          {{ ((soc - battery_level) * 75 / 100 / 4.1) | round() }}
-        ladetid: >
-          {% set charge_needed = [0, (states('input_number.tesla_model_y_ladegrense') | float | round - states('sensor.tesla_model_y_batteri_batteriniva') | float)] | max %}
-          {% set total_seconds = (charge_needed * 75 / 100 / 4.1) * 3600 %}
-          {% set h = (total_seconds / 3600) | int %}
-          {% set m = ((total_seconds % 3600) / 60) | int %}
-          {% set s = (total_seconds % 60) | int %}
-          {{ h }}h {{ m }}m {{ s }}s
-        ladepris: >
-          {% set battery_level = states('sensor.tesla_model_y_batteri_batteriniva') | float %}
-          {% set soc = states('input_number.tesla_model_y_ladegrense') | round(0) | float %}
-          {% set pris = states('sensor.norgespris_pris_na') | float %}
-          {% set charge_needed = (soc - battery_level) / 100 %}
-          {{ (pris * ([0, charge_needed] | max) * 75) | round(0) }}
-
-- sensor:
-    - name: "Ioniq Ladepris"
-      name: Ioniq 5 ladepris
-      state:
-        "{% set battery_level = states('sensor.tesla_model_y_batteri_batteriniva') | float
-        %} {% set soc = states('input_number.tesla_model_y_ladegrense') | round(0) %} {% set pris
-        = states('sensor.norgespris_pris_na') %} {{ pris | multiply(((soc
-        - battery_level)/100)*75) | round(1) }}"
-- sensor:
-    - name: "Ioniq Ladepris Dum"
-      name: Ioniq 5 ladepris dum
-      state:
-        "{% set pris = states('sensor.norgespris_pris_na') | float %}
-        {{ (pris*75) | round(1) }}"
-
-- sensor:
-    - name: "Tesla lading kostnad per time"
-      unique_id: tesla_lading_kostnad_per_time
-      unit_of_measurement: "kr/h"
+    - name: "Vannbåren varme strømforbruk"
+      unique_id: vannbaren_varme_power
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
       state: >
-        {{ (states('sensor.elbillader_charge_power') | float(0)
-            * states('sensor.norgespris_pris_na') | float(0)) | round(4) }}
+        {% set total = states('sensor.homey_energy_dongle_effekt') | float(0) %}
+        {% set annet = states('sensor.all_annen_strom_en_varme_power') | float(0) %}
+        {% set buffer = 50 %}
+        {% set varme = total - annet - buffer %}
+        {{ [varme, 0] | max | round(1) }}
 
+# ── Utetemperatur fra met.no (weather.forecast_home) ─────────────────────────
+# sensor.vaervarsel_* fra Homey er offline; dette er backup fra HA's met.no-integrasjon.
 - sensor:
-    - name: "Forrige lading kostnad"
-      unique_id: "forrige_lading_kostnad"
-      state: >
-        {% set kwh = states('sensor.elbillader_completed_session_energy') | float %}
-        {% set pris = states('sensor.norgespris_pris_na') | float %}
-        {{ (kwh * pris) | round(2) }}
-      unit_of_measurement: "kr"
-      device_class: monetary
-      attributes:
-        kwh_ladet: >
-          {{ states('sensor.elbillader_completed_session_energy') | float | round(2) }}
-        pris_per_kwh: >
-          {{ states('sensor.norgespris_pris_na') | float | round(2) }}
-# ============================================================
-# EV Sparing - Template Sensor
-# Legg til i configuration.yaml under:  template:
-# ============================================================
-#
-# Sensorer brukt:
-#   sensor.tesla_model_y_batteri_ladeenergimaler        → Totalt kWh forbrukt (livsløp)
-#   sensor.tesla_model_y_batteri_ladet_energi_lagt_til  → Siste lading tilført kWh
-#   sensor.tesla_model_y_kilometerteller                → Total km kjørt (odometer)
-#   sensor.tesla_model_y_daglig_kjoring                 → Km kjørt i dag
-#   sensor.gas_prices                                   → fuelTypeId:1 = diesel (live)
-#
-# Reelt kWh/100km beregnes fra faktisk total kWh / total km.
-# Oppdateres automatisk når kWh eller km-sensor endrer seg.
-# ============================================================
-
-- sensor:
-    - name: "EV Sparing Oversikt"
-      unique_id: ev_sparing_oversikt
-      unit_of_measurement: "kr"
-      state_class: total
-      device_class: monetary
-      icon: mdi:lightning-bolt-circle
-
-      # Hovedverdi: total akkumulert sparing i kr
-      state: >
-        {% set total_kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-        {% set total_km  = states('sensor.tesla_model_y_kilometerteller') | float(0) %}
-        {% set el_pris   = 0.80 %}
-        {% set diesel_per_100km = 7.5 %}
-
-        {% set diesel_pris = namespace(verdi=24.85) %}
-        {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-          {% for pris in stasjon.prices or [] %}
-            {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-              {% set diesel_pris.verdi = pris.price | float %}
-            {% endif %}
-          {% endfor %}
-        {% endfor %}
-
-        {% set el_kostnad      = total_kwh * el_pris %}
-        {% set diesel_kostnad  = (total_km / 100) * diesel_per_100km * diesel_pris.verdi %}
-        {{ (diesel_kostnad - el_kostnad) | round(2) }}
-
-      attributes:
-        # ── Priser ──────────────────────────────────────────────
-        diesel_pris: >
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {{ diesel_pris.verdi | round(2) }}
-
-        el_pris: 0.80
-
-        # ── Faktisk forbruk ─────────────────────────────────────
-        total_kwh_forbrukt: >
-          {{ states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) | round(1) }}
-
-        total_km_kjort: >
-          {{ states('sensor.tesla_model_y_kilometerteller') | float(0) | round(0) | int }}
-
-        daglig_km: >
-          {{ states('sensor.tesla_model_y_daglig_kjoring') | float(0) | round(1) }}
-
-        # Reelt kWh/100km basert på faktisk kjøring
-        reelt_kwh_per_100km: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% if km > 0 %}
-            {{ ((kwh / km) * 100) | round(2) }}
-          {% else %}
-            0
-          {% endif %}
-
-        # ── Kostnader totalt ────────────────────────────────────
-        total_el_kostnad: >
-          {{ (states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) * 0.80) | round(2) }}
-
-        total_diesel_kostnad: >
-          {% set total_km = states('sensor.tesla_model_y_kilometerteller') | float(0) %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {{ ((total_km / 100) * 7.5 * diesel_pris.verdi) | round(2) }}
-
-        total_sparing: >
-          {% set total_kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set total_km  = states('sensor.tesla_model_y_kilometerteller') | float(0) %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {% set diesel_kost = (total_km / 100) * 7.5 * diesel_pris.verdi %}
-          {% set el_kost     = total_kwh * 0.80 %}
-          {{ (diesel_kost - el_kost) | round(2) }}
-
-        sparing_prosent: >
-          {% set total_kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set total_km  = states('sensor.tesla_model_y_kilometerteller') | float(0) %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {% set diesel_kost = (total_km / 100) * 7.5 * diesel_pris.verdi %}
-          {% set el_kost     = total_kwh * 0.80 %}
-          {% if diesel_kost > 0 %}
-            {{ (((diesel_kost - el_kost) / diesel_kost) * 100) | round(0) | int }}
-          {% else %}
-            0
-          {% endif %}
-
-        # ── Per 100 km (reelt forbruk) ──────────────────────────
-        el_kostnad_per_100km: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {{ (reelt_kwh_per_100km * 0.80) | round(2) }}
-
-        diesel_kostnad_per_100km: >
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {{ (7.5 * diesel_pris.verdi) | round(2) }}
-
-        sparing_per_100km: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {{ ((7.5 * diesel_pris.verdi) - (reelt_kwh_per_100km * 0.80)) | round(2) }}
-
-        # ── Daglig kjøring ──────────────────────────────────────
-        daglig_el_kostnad: >
-          {% set daglig_km = states('sensor.tesla_model_y_daglig_kjoring') | float(0) %}
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {{ ((daglig_km / 100) * reelt_kwh_per_100km * 0.80) | round(2) }}
-
-        daglig_diesel_kostnad: >
-          {% set daglig_km = states('sensor.tesla_model_y_daglig_kjoring') | float(0) %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {{ ((daglig_km / 100) * 7.5 * diesel_pris.verdi) | round(2) }}
-
-        daglig_sparing: >
-          {% set daglig_km = states('sensor.tesla_model_y_daglig_kjoring') | float(0) %}
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {% set diesel_kost = (daglig_km / 100) * 7.5 * diesel_pris.verdi %}
-          {% set el_kost     = (daglig_km / 100) * reelt_kwh_per_100km * 0.80 %}
-          {{ (diesel_kost - el_kost) | round(2) }}
-
-        # ── Siste lading ────────────────────────────────────────
-        siste_lading_kwh: >
-          {{ states('sensor.tesla_model_y_batteri_ladet_energi_lagt_til') | float(0) | round(1) }}
-
-        siste_lading_kostnad: >
-          {{ (states('sensor.tesla_model_y_batteri_ladet_energi_lagt_til') | float(0) * 0.80) | round(2) }}
-
-        siste_lading_km_rekkevidde: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {% set lading_kwh = states('sensor.tesla_model_y_batteri_ladet_energi_lagt_til') | float(0) %}
-          {{ ((lading_kwh / reelt_kwh_per_100km) * 100) | round(0) | int }}
-
-        siste_lading_diesel_ekvivalent: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {% set lading_kwh = states('sensor.tesla_model_y_batteri_ladet_energi_lagt_til') | float(0) %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {% set lading_km = (lading_kwh / reelt_kwh_per_100km) * 100 %}
-          {{ ((lading_km / 100) * 7.5 * diesel_pris.verdi) | round(2) }}
-
-        siste_lading_sparing: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {% set lading_kwh = states('sensor.tesla_model_y_batteri_ladet_energi_lagt_til') | float(0) %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {% set lading_km  = (lading_kwh / reelt_kwh_per_100km) * 100 %}
-          {% set diesel_kost = (lading_km / 100) * 7.5 * diesel_pris.verdi %}
-          {% set el_kost     = lading_kwh * 0.80 %}
-          {{ (diesel_kost - el_kost) | round(2) }}
-
-        # ── Årsestimater (basert på reelt forbruk, 20 000 km) ───
-        aarlig_el_kostnad: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {{ ((20000 / 100) * reelt_kwh_per_100km * 0.80) | round(0) | int }}
-
-        aarlig_diesel_kostnad: >
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {{ ((20000 / 100) * 7.5 * diesel_pris.verdi) | round(0) | int }}
-
-        aarlig_sparing: >
-          {% set kwh = states('sensor.tesla_model_y_batteri_ladeenergimaler') | float(0) %}
-          {% set km  = states('sensor.tesla_model_y_kilometerteller') | float(1) %}
-          {% set reelt_kwh_per_100km = (kwh / km) * 100 if km > 0 else 18.0 %}
-          {% set diesel_pris = namespace(verdi=24.85) %}
-          {% for stasjon in state_attr('sensor.gas_prices', 'stations') or [] %}
-            {% for pris in stasjon.prices or [] %}
-              {% if pris.fuelTypeId | int == 1 and not pris.deleted %}
-                {% set diesel_pris.verdi = pris.price | float %}
-              {% endif %}
-            {% endfor %}
-          {% endfor %}
-          {% set diesel = (20000 / 100) * 7.5 * diesel_pris.verdi %}
-          {% set el     = (20000 / 100) * reelt_kwh_per_100km * 0.80 %}
-          {{ (diesel - el) | round(0) | int }}
-
-
-#########################################
-#                                       #
-#         VANN AKTIVITET                #
-#                                       #
-#########################################
-
-# Kategoriserer øyeblikkelig vannforbruk basert på flyt (L/min) og vanntype.
-# Avhengig av sensor.vann_flyt (derivative fra sensor.yaml).
-
-- sensor:
-    - name: "Vann aktivitet kategori"
-      unique_id: vann_aktivitet_kategori
-      state: >
-        {% set flow = states('sensor.vann_flyt') | float(0) %}
-        {% set water_type = states('sensor.vannmaler_water_type') | lower %}
-        {% if flow < 0.1 %}
-          Ingen aktivitet
-        {% elif flow < 1.5 %}
-          Handvask
-        {% elif flow < 4 %}
-          Toalett
-        {% elif flow < 9 %}
-          {% if water_type == 'hot' %}
-            Oppvask (varm)
-          {% else %}
-            Vask / oppvask
-          {% endif %}
-        {% elif flow < 14 %}
-          Dusj
-        {% else %}
-          Badekar
-        {% endif %}
-      attributes:
-        flow_lpm: "{{ states('sensor.vann_flyt') | float(0) | round(1) }}"
-        water_type: "{{ states('sensor.vannmaler_water_type') }}"
-      icon: >
-        {% set flow = states('sensor.vann_flyt') | float(0) %}
-        {% if flow < 0.1 %}
-          mdi:water-off
-        {% elif flow < 4 %}
-          mdi:water-drop
-        {% elif flow < 9 %}
-          mdi:water-pump
-        {% elif flow < 14 %}
-          mdi:shower
-        {% else %}
-          mdi:bathtub
-        {% endif %}
-
-#########################################
-#                                       #
-#         VANNING ANBEFALING            #
-#                                       #
-#########################################
-
-# Anbefaler vanningsprogram basert på nedbørsvarsel og temperatur.
-# Attributten anbefalt_minutter brukes av dashbordet for å foreslå varighet.
-
-- sensor:
-    - name: "Vanning anbefaling"
-      unique_id: vanning_anbefaling
-      state: >
-        {% set regn30 = states('sensor.vaervarsel_regn_neste_30_minutter') | float(0) %}
-        {% set regn1t  = states('sensor.vaervarsel_regn_neste_time')        | float(0) %}
-        {% set regn6t  = states('sensor.vaervarsel_regn_neste_6_timer')     | float(0) %}
-        {% set regn_om = states('sensor.vaervarsel_regn_starter_om')        | int(1440) %}
-        {% set temp    = states('sensor.outdoor_meter_temperature')         | float(15) %}
-        {% set terskel = states('input_number.vanning_regn_terskel')        | float(2) %}
-        {% if regn30 > 0.5 %}
-          Hopp over — regner nå
-        {% elif regn1t > terskel %}
-          {% if regn_om < 60 %}
-            Vent — regn om {{ regn_om }} min
-          {% else %}
-            Vent — regn om {{ (regn_om // 60) }}t
-          {% endif %}
-        {% elif regn6t > terskel %}
-          Vent — {{ regn6t | round(1) }} mm forventet
-        {% elif temp > 25 %}
-          Vann nå: 30 min (varmt)
-        {% elif temp > 18 %}
-          Vann nå: 20 min
-        {% else %}
-          Vann nå: 15 min
-        {% endif %}
-      attributes:
-        anbefalt_minutter: >
-          {% set regn30 = states('sensor.vaervarsel_regn_neste_30_minutter') | float(0) %}
-          {% set regn1t  = states('sensor.vaervarsel_regn_neste_time')        | float(0) %}
-          {% set regn6t  = states('sensor.vaervarsel_regn_neste_6_timer')     | float(0) %}
-          {% set temp    = states('sensor.outdoor_meter_temperature')         | float(15) %}
-          {% set terskel = states('input_number.vanning_regn_terskel')        | float(2) %}
-          {% if regn30 > 0.5 or regn1t > terskel or regn6t > terskel %}
-            0
-          {% elif temp > 25 %}
-            30
-          {% elif temp > 18 %}
-            20
-          {% else %}
-            15
-          {% endif %}
-        skip_reason: >
-          {% set regn30 = states('sensor.vaervarsel_regn_neste_30_minutter') | float(0) %}
-          {% set regn1t  = states('sensor.vaervarsel_regn_neste_time')        | float(0) %}
-          {% set regn6t  = states('sensor.vaervarsel_regn_neste_6_timer')     | float(0) %}
-          {% set terskel = states('input_number.vanning_regn_terskel')        | float(2) %}
-          {% if regn30 > 0.5 %}
-            Regner nå
-          {% elif regn1t > terskel or regn6t > terskel %}
-            Regn forventet
-          {% else %}
-            none
-          {% endif %}
-      icon: >
-        {% set regn6t  = states('sensor.vaervarsel_regn_neste_6_timer') | float(0) %}
-        {% set terskel = states('input_number.vanning_regn_terskel')    | float(2) %}
-        {% if regn6t > terskel %}
-          mdi:umbrella
-        {% else %}
-          mdi:sprinkler-variant
-        {% endif %}
-
-
-#########################################
-#                                       #
-#      HVITVARE GJENVÆRENDE TID         #
-#                                       #
-#########################################
-
-# Vaskemaskin: 1t 10min (70 min) program.
-# Bruker last_changed på input_select.washing_machine_status når tilstand = "Running".
-# sensor.time (fra time_date platform) oppdateres hvert minutt og gjør at malen re-evalueres.
-
-- sensor:
-    - name: "Vaskemaskin gjenstår"
-      unique_id: vaskemaskin_gjenstaar
-      unit_of_measurement: "min"
-      icon: mdi:washing-machine
-      state: >
-        {% set _tick = states('sensor.time') %}
-        {% if is_state('input_select.washing_machine_status', 'Running') %}
-          {% set started = as_timestamp(states.input_select.washing_machine_status.last_changed) %}
-          {% set elapsed = (now() | as_timestamp - started) / 60 %}
-          {{ [70 - elapsed | round(0) | int, 0] | max }}
-        {% else %}
-          0
-        {% endif %}
-
-# Oppvaskmaskin: 40 min program.
-# Starttid lagres i input_datetime.oppvaskmaskin_start via automatisering.
-
-- sensor:
-    - name: "Oppvaskmaskin gjenstår"
-      unique_id: oppvaskmaskin_gjenstaar
-      unit_of_measurement: "min"
-      icon: mdi:dishwasher
-      state: >
-        {% set _tick = states('sensor.time') %}
-        {% set power = states('sensor.oppvaskmaskin_effekt') | float(0) %}
-        {% if power > 10 %}
-          {% set started = as_timestamp(states('input_datetime.oppvaskmaskin_start')) %}
-          {% if started and started > 0 %}
-            {% set elapsed = (now() | as_timestamp - started) / 60 %}
-            {{ [40 - elapsed | round(0) | int, 0] | max }}
-          {% else %}
-            40
-          {% endif %}
-        {% else %}
-          0
-        {% endif %}
+    - name: "Utetemperatur"
+      unique_id: utetemperatur_fra_met
+      state: "{{ state_attr('weather.forecast_home', 'temperature') | float(0) }}"
+      unit_of_measurement: "°C"
+      device_class: temperature
+      state_class: measurement
+    - name: "Utefuktighet"
+      unique_id: utefuktighet_fra_met
+      state: "{{ state_attr('weather.forecast_home', 'humidity') | int(0) }}"
+      unit_of_measurement: "%"
+      device_class: humidity
+      state_class: measurement

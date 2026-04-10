@@ -570,11 +570,6 @@ norgespris_besparelse_aar:
   cycle: yearly
   name: "Norgespris Besparelse Dette Året"
 
-strommaler_time_peak:
-  source: sensor.strommaler_energy_imported
-  cycle: hourly
-  unique_id: strommaler_time_peak
-
 tesla_daglig_kjoring:
   source: sensor.tesla_model_y_kilometerteller
   cycle: daily
@@ -583,18 +578,3 @@ tesla_daglig_kjoring:
 tesla_lading_kostnad_per_okt:
   source: sensor.tesla_siste_lading_kostnad
   cycle: daily
-
-vannforbruk_daglig:
-  source: sensor.my_water_grip_total_volume_m3
-  cycle: daily
-  name: "Vannforbruk Daglig"
-
-vannforbruk_ukentlig:
-  source: sensor.my_water_grip_total_volume_m3
-  cycle: weekly
-  name: "Vannforbruk Ukentlig"
-
-vannforbruk_manedlig:
-  source: sensor.my_water_grip_total_volume_m3
-  cycle: monthly
-  name: "Vannforbruk Månedlig"

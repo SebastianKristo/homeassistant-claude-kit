@@ -1,0 +1,119 @@
+###############################################################################
+# Context / Activity Mode Automations
+#
+# Manages night_mode, movie_mode, work_mode, away_mode toggles.
+# Away mode is driven by the Verisure alarm state (armed_away = away).
+###############################################################################
+
+# ── Away Mode — Verisure Alarm Sync ──────────────────────────────────────────
+- id: "1774806680392"
+  alias: Start Mqtt ved restart
+  description: ""
+  triggers:
+    - trigger: homeassistant
+      event: start
+  conditions: []
+  actions:
+    - action: input_boolean.turn_on
+      metadata: {}
+      target:
+        entity_id: input_boolean.trigger_mqtt
+      data: {}
+    - delay:
+        hours: 0
+        minutes: 1
+        seconds: 0
+        milliseconds: 0
+    - action: input_boolean.turn_off
+      metadata: {}
+      target:
+        entity_id: input_boolean.trigger_mqtt
+      data: {}
+  mode: single
+
+- id: "context_away_on_alarm_armed"
+  alias: Context - Away Mode On When Alarm Armed Away
+  description: >
+    Sync away mode with Verisure alarm. When alarm is armed for away,
+    mark the cabin as unoccupied.
+  triggers:
+    - trigger: state
+      entity_id: alarm_control_panel.verisure_alarm
+      to: "armed_away"
+  conditions: []
+  actions:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.away_mode
+  mode: single
+
+- id: "context_away_off_alarm_disarmed"
+  alias: Context - Away Mode Off When Alarm Disarmed
+  description: >
+    Clear away mode when alarm is disarmed or set to armed_home.
+    Someone is present at the cabin.
+  triggers:
+    - trigger: state
+      entity_id: alarm_control_panel.verisure_alarm
+      to:
+        - "disarmed"
+        - "armed_home"
+  conditions: []
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.away_mode
+  mode: single
+
+# ── Mode Hierarchy ────────────────────────────────────────────────────────────
+
+- id: "context_clear_lower_on_night"
+  alias: Context - Clear Lower Modes on Night Mode
+  description: Night mode takes priority — clears movie and work mode
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.night_mode
+      to: "on"
+  conditions: []
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.movie_mode
+          - input_boolean.work_mode
+  mode: single
+
+- id: "context_clear_work_on_movie"
+  alias: Context - Clear Work on Movie Mode
+  description: Movie mode clears work mode
+  triggers:
+    - trigger: state
+      entity_id: input_boolean.movie_mode
+      to: "on"
+  conditions: []
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.work_mode
+  mode: single
+
+# ── Night Mode Auto-Off at Sunrise ────────────────────────────────────────────
+
+- id: "context_night_mode_off_sunrise"
+  alias: Context - Night Mode Off at Sunrise
+  description: Automatically clear night mode at sunrise (or 07:30 if later)
+  triggers:
+    - trigger: sun
+      event: sunrise
+      offset: "+00:30:00"
+    - trigger: time
+      at: "07:30:00"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.night_mode
+      state: "on"
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.night_mode
+  mode: single

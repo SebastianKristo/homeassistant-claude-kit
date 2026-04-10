@@ -1,0 +1,197 @@
+esphome:
+  name: lampe
+  friendly_name: Lampe
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: NONE
+
+api:
+  encryption:
+    key: "x5R5jF5IVQ4EdDp47ME/NyfRnAwQ/jMv1Gl5O/LYViI="
+
+ota:
+  - platform: esphome
+    password: "3bdf71e7721b2ac9e2d6446839dd66ec"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: LIGHT
+
+captive_portal:
+
+esp32_touch:
+
+# LED Ring konfigurasjon for ESP-IDF
+light:
+  - platform: esp32_rmt_led_strip
+    rgb_order: GRB
+    pin: GPIO33
+    num_leds: 24  # Endre til antall LEDs i ringen din (typisk 12, 16, 24 eller 60)
+    chipset: ws2812
+    name: "LED Ring"
+    id: led_ring
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - addressable_rainbow:
+          name: Rainbow
+          speed: 10
+          width: 50
+      - addressable_color_wipe:
+          name: Color Wipe
+          colors:
+            - red: 100%
+              green: 0%
+              blue: 0%
+              num_leds: 1
+            - red: 0%
+              green: 100%
+              blue: 0%
+              num_leds: 1
+            - red: 0%
+              green: 0%
+              blue: 100%
+              num_leds: 1
+          add_led_interval: 100ms
+          reverse: false
+      - addressable_scan:
+          name: Scan
+          move_interval: 100ms
+      - addressable_twinkle:
+          name: Twinkle
+          twinkle_probability: 5%
+          progress_interval: 4ms
+      - addressable_fireworks:
+          name: Fireworks
+          update_interval: 32ms
+          spark_probability: 10%
+          use_random_color: true
+          fade_out_rate: 120
+
+globals:
+  - id: single_tap_flag
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: double_tap_flag
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: long_press_flag
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+binary_sensor:
+  - platform: esp32_touch
+    pin: GPIO32
+    threshold: 800
+    id: touch_button
+    internal: true
+    on_multi_click:
+      - timing:
+          - ON for 30ms to 600ms
+        then:
+          - script.execute: handle_single_tap
+      - timing:
+          - ON for 30ms to 600ms
+          - OFF for 30ms to 600ms
+          - ON for 30ms to 600ms
+        then:
+          - script.stop: handle_single_tap
+          - globals.set:
+              id: double_tap_flag
+              value: 'true'
+          - delay: 300ms
+          - globals.set:
+              id: double_tap_flag
+              value: 'false'
+      - timing:
+          - ON for at least 800ms
+        then:
+          - script.stop: handle_single_tap
+          - globals.set:
+              id: long_press_flag
+              value: 'true'
+          - delay: 300ms
+          - globals.set:
+              id: long_press_flag
+              value: 'false'
+
+  - platform: template
+    name: "Single Tap"
+    lambda: |-
+      return id(single_tap_flag);
+    internal: false
+
+  - platform: template
+    name: "Double Tap"
+    lambda: |-
+      return id(double_tap_flag);
+    internal: false
+
+  - platform: template
+    name: "Long Press"
+    lambda: |-
+      return id(long_press_flag);
+    internal: false
+
+sensor:
+  - platform: adc
+    pin: GPIO35
+    id: battery_voltage
+    internal: true
+    update_interval: 120s
+    attenuation: 11db
+    filters:
+      - multiply: 24.7
+
+  - platform: template
+    name: "Battery Level"
+    unit_of_measurement: "%"
+    icon: "mdi:battery"
+    update_interval: 120s
+    lambda: |-
+      if (id(battery_voltage).state >= 4.2) {
+        return 100;
+      } else if (id(battery_voltage).state <= 3.2) {
+        return 0;
+      } else {
+        return (id(battery_voltage).state - 3.2) * 100.0 / (4.2 - 3.2);
+      }
+
+script:
+  - id: handle_touch_press
+    mode: restart
+    then:
+      - if:
+          condition:
+            light.is_off: led_ring
+          then:
+            - light.turn_on: led_ring
+          else:
+            - light.turn_off: led_ring
+
+  - id: handle_single_tap
+    mode: restart
+    then:
+      - delay: 400ms
+      - globals.set:
+          id: single_tap_flag
+          value: 'true'
+      - script.execute: handle_touch_press
+      - delay: 200ms
+      - globals.set:
+          id: single_tap_flag
+          value: 'false'
+
+interval:
+  - interval: 60s
+    then:
+      - lambda: |-
+          ESP_LOGI("battery", "Battery voltage: %.2f V", id(battery_voltage).state);

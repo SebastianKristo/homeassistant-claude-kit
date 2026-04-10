@@ -1,0 +1,46 @@
+blueprint:
+  name: Turn Off Heating When Door or Window Is Open
+  description: Turns off the heating if a door or window remains open for a defined
+    duration.
+  domain: automation
+  input:
+    open_sensors:
+      name: Door or Window Sensors
+      description: Select the door and/or window sensors to monitor
+      selector:
+        entity:
+          domain:
+          - binary_sensor
+          device_class:
+          - door
+          - window
+          multiple: true
+          reorder: false
+    climate_device:
+      name: Climate Device
+      selector:
+        target:
+          entity:
+          - domain:
+            - climate
+    open_duration:
+      name: Open Duration
+      description: How long a door or window must stay open before turning off the
+        heating
+      default: 00:10:00
+      selector:
+        duration: {}
+  source_url: https://gist.githubusercontent.com/AbleMonster/2eb1933ab60ef83b2bdd424619163321/raw/7c9629ec72ea80cb708fdc4e9ed77995429a5e50/Turn%20Off%20Heating%20When%20Door%20or%20Window%20Is%20Open
+trigger:
+- platform: state
+  entity_id: !input open_sensors
+  from: 'off'
+  to: 'on'
+  for: !input open_duration
+condition: []
+action:
+- service: climate.set_hvac_mode
+  target: !input climate_device
+  data:
+    hvac_mode: 'off'
+mode: single

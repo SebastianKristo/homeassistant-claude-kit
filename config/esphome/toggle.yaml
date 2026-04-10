@@ -1,0 +1,61 @@
+esphome:
+  name: toggle
+  friendly_name: toggle
+
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+
+# Enable logging
+logger:
+
+api:
+  encryption:
+    key: "cdROKuDqwxayoWo0tbAN2mZDFpO9QTRa5zVTCWZ/1No="
+
+ota:
+  - platform: esphome
+    password: "c754acb085e209df0bd033965e68e7eb"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Stue-Multisensor"
+    password: "bpbncAUaCWH9"
+
+captive_portal:
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO18
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Bryter 1"
+
+  - platform: gpio
+    pin:
+      number: GPIO19
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Bryter 2"
+
+  - platform: gpio
+    pin:
+      number: GPIO21
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Bryter 3"
+
+  - platform: gpio
+    pin:
+      number: GPIO15
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Bryter Nøkkel"

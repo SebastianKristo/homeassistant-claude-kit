@@ -1,0 +1,97 @@
+###############################################################################
+# Health / System Monitoring Automations
+#
+# - Battery alert for low devices (< 10%)
+# - Freezer power alert (if fryseskap power drops unexpectedly)
+# - HA startup notification
+###############################################################################
+
+# ── Battery Alert ─────────────────────────────────────────────────────────────
+
+- id: 'health_low_battery_alert'
+  alias: Health - Low Battery Alert
+  description: >
+    Notify when any battery-powered device drops below 10%.
+    Skips mobile phones (tracked separately).
+  triggers:
+  - trigger: numeric_state
+    entity_id:
+    - sensor.aqara_roller_shade_driver_e1_battery
+    - sensor.soverom_bryter_battery
+    - sensor.stue_master_bryter_battery
+    - sensor.tv_sidebord_vryter_battery
+    - sensor.bryter_soverom_1_et_battery
+    - sensor.rullegardin_battery
+    - sensor.soverom_nattlampe_bryter_battery
+    - sensor.trappegang_bryter_battery
+    - sensor.trappegang_hoyre_battery
+    - sensor.trappegang_venstre_battery
+    - sensor.allrom_sofalampe_bryter_battery
+    - sensor.sofalampe_hoyre_bryter_battery
+    - sensor.sofalampe_venstre_bryter_battery
+    - sensor.vinkellampe_bryter_battery
+    - sensor.bad_1_et_bevegelsessensor_batteri
+    - sensor.bad_2_et_bevegelsessensor_batteri
+    - sensor.gjeita_battery
+    below: 10
+    id: battery_low
+  conditions:
+  - condition: state
+    entity_id: input_boolean.away_mode
+    state: 'off'
+  actions:
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: "🔋 Lavt batteri"
+      message: "{{ trigger.to_state.attributes.friendly_name }} er på {{ trigger.to_state.state }}%"
+  - action: notify.mobile_app_sebastian_pixel_9_pro_fold
+    data:
+      title: "🔋 Lavt batteri"
+      message: "{{ trigger.to_state.attributes.friendly_name }} er på {{ trigger.to_state.state }}%"
+  mode: single
+
+# ── Freezer Alert ─────────────────────────────────────────────────────────────
+
+- id: 'health_fryseskap_power_alert'
+  alias: Health - Freezer Power Alert
+  description: >
+    Alert if the freezer (fryseskap) power drops to near 0W for more than
+    30 minutes. Could indicate it was accidentally switched off.
+  triggers:
+  - trigger: numeric_state
+    entity_id: sensor.fryseskap_effekt
+    below: 5
+    for:
+      minutes: 30
+  conditions:
+  - condition: state
+    entity_id: switch.fryseskap
+    state: 'on'
+  actions:
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: "❄️ Fryseskap advarsel"
+      message: "Fryseskapet bruker bare {{ states('sensor.fryseskap_effekt') }}W — sjekk at det virker."
+  - action: notify.mobile_app_sebastian_pixel_9_pro_fold
+    data:
+      title: "❄️ Fryseskap advarsel"
+      message: "Fryseskapet bruker bare {{ states('sensor.fryseskap_effekt') }}W — sjekk at det virker."
+  mode: single
+
+# ── HA Startup Notification ───────────────────────────────────────────────────
+
+- id: 'health_ha_startup'
+  alias: Health - HA Startup Notification
+  description: Notify on Home Assistant restart
+  triggers:
+  - trigger: homeassistant
+    event: start
+  conditions: []
+  actions:
+  - delay:
+      minutes: 3
+  - action: notify.mobile_app_sebastian_iphone_17_pro
+    data:
+      title: "🏠 Home Assistant startet"
+      message: "HA er oppe igjen — {{ now().strftime('%H:%M') }}"
+  mode: single

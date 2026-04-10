@@ -1,0 +1,25 @@
+previous_accent_color:
+    name: "Restore previous accent color"
+    version: "1.0"
+    creator: "Clooos"
+    link: "https://github.com/Clooos/Bubble-Card/discussions/1558"
+
+    supported:
+        - button
+        - calendar
+        - climate
+        - cover
+        - horizontal-buttons-stack
+        - media-player
+        - pop-up
+        - select
+        - separator
+
+    description: |
+        Restores the pre–Bubble Card 3 accent color. Not a fan of the new contrast-friendly blue? This module brings back the original accent color.
+
+    code: |
+        * {
+            --bubble-accent-color: var(--accent-color);
+            --bubble-button-accent-color: var(--accent-color);
+        }

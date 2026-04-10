@@ -80,289 +80,73 @@ soverom_morgengry_minutter:
   unit_of_measurement: "min"
   mode: slider
 
-#########
-# Klima #
-#########
-
-bad_gulvvarme_teller:
-  name: Bad Gulvvarme Teller
-  min: 0
-  max: 40
-  step: 1
-
-cybele_panelovn_teller:
-  name: Cybele Panelovn Teller
-  min: 0
-  max: 40
-  step: 1
-
-do_gulvvarme_teller:
-  name: Do Gulvvarme Teller
-  min: 0
-  max: 40
-  step: 1
-
-kjokken_gulvvarme_teller:
-  name: Kjøkken Gulvvarme Teller
-  min: 0
-  max: 40
-  step: 1
-
-kjokken_panelovn_teller:
-  name: Kjøkken Panelovn Teller
-  min: 0
-  max: 40
-  step: 1
-
-sebastian_panelovn_teller:
-  name: Sebastian Panelovn Teller
-  min: 0
-  max: 40
-  step: 1
-
-stue_oljefyr_teller:
-  name: Stue Oljefyr Teller
-  min: 0
-  max: 40
-  step: 1
-
-stue_panelovn_teller:
-  name: Stue Panelovn Teller
-  min: 0
-  max: 40
-  step: 1
-
-trappegang_panelovn_teller:
-  name: Trappegang Panelovn Teller
-  min: 0
-  max: 40
-  step: 1
-
-vaskegang_gulvvarme_teller:
-  name: Vaskegang Gulvvarme Teller
-  min: 0
-  max: 40
-  step: 1
-
-####################
-# MySmartHome Task #
-####################
-
-tasks_priority:
-  name: Task Priority
-  min: 0
-  max: 100
-  step: 1
+# ── Motion light timeouts ─────────────────────────────────────────────────────
+timeout_motion_normal:
+  name: Motion Timeout Normal
+  min: 30
+  max: 600
+  step: 10
+  initial: 120
+  unit_of_measurement: "s"
+  icon: mdi:timer-outline
   mode: slider
 
-####################
-# Strøm fastledd   #
-####################
+timeout_motion_normal_long:
+  name: Motion Timeout Normal Long
+  min: 60
+  max: 600
+  step: 10
+  initial: 180
+  unit_of_measurement: "s"
+  icon: mdi:timer-outline
+  mode: slider
 
-effekt_topp_1:
-  name: "Effekttopp 1"
-  min: 0
-  max: 50
-  step: 0.01
-  unit_of_measurement: "kW"
-  icon: mdi:flash
-effekt_topp_2:
-  name: "Effekttopp 2"
-  min: 0
-  max: 50
-  step: 0.01
-  unit_of_measurement: "kW"
-  icon: mdi:flash
-effekt_topp_3:
-  name: "Effekttopp 3"
-  min: 0
-  max: 50
-  step: 0.01
-  unit_of_measurement: "kW"
-  icon: mdi:flash
+timeout_motion_night:
+  name: Motion Timeout Night
+  min: 5
+  max: 120
+  step: 5
+  initial: 30
+  unit_of_measurement: "s"
+  icon: mdi:weather-night
+  mode: slider
 
-fastledd_januar:
-  name: "Fastledd Januar"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_februar:
-  name: "Fastledd Februar"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_mars:
-  name: "Fastledd Mars"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_april:
-  name: "Fastledd April"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_mai:
-  name: "Fastledd Mai"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_juni:
-  name: "Fastledd Juni"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_juli:
-  name: "Fastledd Juli"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_august:
-  name: "Fastledd August"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_september:
-  name: "Fastledd September"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_oktober:
-  name: "Fastledd Oktober"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_november:
-  name: "Fastledd November"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: "kr"
-fastledd_desember:
-  name: "Fastledd Desember"
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement:
-    "kr"
-
-
-tesla_model_y_ladegrense:
-  name: "Tesla Model Y Ladegrense"
-  min: 0
-  max: 100
-  unit_of_measurement: "%"
-  mode: box
-
-smart_lading_maks_pris:
-  name: "Smart lading — maks pris"
-  icon: mdi:ev-station
-  min: 0.20
-  max: 3.00
-  step: 0.05
-  unit_of_measurement: "kr/kWh"
-  mode: box
-
-###########
-# Vanning #
-###########
-
-vanning_kjokken_varighet:
-  name: Kjøkken Varighet
-  min: 1
+timeout_motion_night_short:
+  name: Motion Timeout Night Short
+  min: 5
   max: 60
-  step: 1
-  unit_of_measurement: min
-  icon: mdi:timer
+  step: 5
+  initial: 15
+  unit_of_measurement: "s"
+  icon: mdi:weather-night
+  mode: slider
 
-vanning_veranda_bed_varighet:
-  name: Veranda Bed Varighet
-  min: 1
-  max: 60
-  step: 1
-  unit_of_measurement: min
-  icon: mdi:timer
+timeout_motion_movie:
+  name: Motion Timeout Movie
+  min: 5
+  max: 120
+  step: 5
+  initial: 30
+  unit_of_measurement: "s"
+  icon: mdi:movie-open
+  mode: slider
 
-vanning_veranda_blomster_varighet:
-  name: Veranda Blomster Varighet
-  min: 1
-  max: 60
-  step: 1
-  unit_of_measurement: min
-  icon: mdi:timer
-
-vanning_regn_terskel:
-  name: Regnskjerm Terskel
-  min: 0.5
-  max: 20
+transition_on:
+  name: Light Transition On
+  min: 0
+  max: 10
   step: 0.5
-  unit_of_measurement: mm
-  icon: mdi:weather-rainy
+  initial: 0.5
+  unit_of_measurement: "s"
+  icon: mdi:lightbulb-on-outline
   mode: slider
 
-#########################################
-#  VANNFORBRUK KATEGORISERING           #
-#########################################
-
-vann_session_start:
-  name: Vann sesjon startvolum
+transition_off:
+  name: Light Transition Off
   min: 0
-  max: 9999999
-  step: 1
-  unit_of_measurement: L
-  icon: mdi:water
-  mode: box
-
-vann_dusj_daglig:
-  name: Vann dusj daglig
-  min: 0
-  max: 2000
-  step: 1
-  unit_of_measurement: L
-  icon: mdi:shower-head
-  mode: box
-
-vann_toalett_daglig:
-  name: Vann toalett daglig
-  min: 0
-  max: 2000
-  step: 1
-  unit_of_measurement: L
-  icon: mdi:toilet
-  mode: box
-
-vann_handvask_daglig:
-  name: Vann håndvask daglig
-  min: 0
-  max: 500
-  step: 1
-  unit_of_measurement: L
-  icon: mdi:hand-water
-  mode: box
-
-vann_oppvask_daglig:
-  name: Vann oppvask daglig
-  min: 0
-  max: 1000
-  step: 1
-  unit_of_measurement: L
-  icon: mdi:dishwasher
-  mode: box
-
-vann_badekar_daglig:
-  name: Vann badekar daglig
-  min: 0
-  max: 500
-  step: 1
-  unit_of_measurement: L
-  icon: mdi:bathtub-outline
-  mode: box
+  max: 10
+  step: 0.5
+  initial: 1
+  unit_of_measurement: "s"
+  icon: mdi:lightbulb-off-outline
+  mode: slider

@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "format": "zigpy/open-coordinator-backup",
+    "version": 1,
+    "source": "zigbee-herdsman@9.0.9",
+    "internal": {
+      "date": "2026-03-16T14:02:21.689Z",
+      "znpVersion": 1
+    }
+  },
+  "stack_specific": {
+    "zstack": {
+      "tclk_seed": "a149eb18d04266d8edccd68b39e129f5"
+    }
+  },
+  "coordinator_ieee": "00124b00258ce0da",
+  "pan_id": "ae2d",
+  "extended_pan_id": "2b514ee389fbdac9",
+  "nwk_update_id": 0,
+  "security_level": 5,
+  "channel": 11,
+  "channel_mask": [
+    11
+  ],
+  "network_key": {
+    "key": "86f27806000c61dd1b131fc9752fd373",
+    "sequence_number": 0,
+    "frame_counter": 1
+  },
+  "devices": [
+    {
+      "nwk_address": "f292",
+      "ieee_address": "ec1bbdfffe022928",
+      "is_child": false
+    },
+    {
+      "nwk_address": "23e2",
+      "ieee_address": "6c5cb1fffe6188e9",
+      "is_child": false
+    },
+    {
+      "nwk_address": "9ca8",
+      "ieee_address": "a4c138e965ab65dd",
+      "is_child": true
+    },
+    {
+      "nwk_address": "d515",
+      "ieee_address": "a4c138f6c463d9a8",
+      "is_child": false
+    },
+    {
+      "nwk_address": "1574",
+      "ieee_address": "a4c13825e41b1b34",
+      "is_child": true
+    },
+    {
+      "nwk_address": "2491",
+      "ieee_address": "a4c13804f257ecff",
+      "is_child": true
+    },
+    {
+      "nwk_address": "d83c",
+      "ieee_address": "a4c138ba387e41b8",
+      "is_child": true
+    },
+    {
+      "nwk_address": "2283",
+      "ieee_address": "a4c13828f02aa6d2",
+      "is_child": true
+    },
+    {
+      "nwk_address": "6f4d",
+      "ieee_address": "a4c1381f3d643fe1",
+      "is_child": true
+    },
+    {
+      "nwk_address": "9826",
+      "ieee_address": "a4c138e04ab9939d",
+      "is_child": true
+    },
+    {
+      "nwk_address": "a22",
+      "ieee_address": "a4c1381be7bd0fea",
+      "is_child": false
+    },
+    {
+      "nwk_address": "99d5",
+      "ieee_address": "286d97000108a779",
+      "is_child": false
+    },
+    {
+      "nwk_address": "d9a8",
+      "ieee_address": "f4ce36f429dc49ee",
+      "is_child": false
+    }
+  ]
+}

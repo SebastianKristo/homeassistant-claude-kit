@@ -1,0 +1,69 @@
+version: 5
+mqtt:
+  base_topic: zigbee2mqtt
+  server: mqtt://10.69.1.95:1883
+  user: sebastian
+  password: Petrik2018
+serial:
+  rtscts: false
+  port: tcp://10.69.1.89:6638
+  adapter: zstack
+  baudrate: 115200
+advanced:
+  log_level: info
+  channel: 11
+  network_key:
+    - 2
+    - 134
+    - 119
+    - 230
+    - 198
+    - 75
+    - 15
+    - 148
+    - 130
+    - 117
+    - 9
+    - 232
+    - 129
+    - 194
+    - 116
+    - 168
+  pan_id: 26038
+  ext_pan_id:
+    - 145
+    - 61
+    - 93
+    - 111
+    - 60
+    - 237
+    - 27
+    - 14
+frontend:
+  enabled: true
+  port: 8099
+homeassistant:
+  enabled: true
+devices:
+  '0x6c5cb1fffe6188e9':
+    friendly_name: Sebastian Julestjerne
+  '0xa4c138e965ab65dd':
+    friendly_name: Plantesensor
+  '0xa4c138f6c463d9a8':
+    friendly_name: Cybele Soverom Vindu
+  '0xa4c13825e41b1b34':
+    friendly_name: Rune Kontor Vindu
+  '0xa4c13804f257ecff':
+    friendly_name: Loftesensor
+  '0xa4c138ba387e41b8':
+    friendly_name: Rune Soverom Dør
+  '0xa4c13828f02aa6d2':
+    friendly_name: Rune Soverom Vindu
+  '0xa4c1381f3d643fe1':
+    friendly_name: Cybele Soverom Dør
+  '0xa4c138e04ab9939d':
+    friendly_name: Verandadør
+  '0xa4c1381be7bd0fea':
+    friendly_name: Kjøkken Vindu
+  '0x286d97000108a779':
+    friendly_name: Vindusensor Venstre

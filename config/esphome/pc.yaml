@@ -1,0 +1,71 @@
+esphome:
+  name: pc
+  friendly_name: Pc
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "jFzQGssvtzX75x9llAR75rmsHBGwTz4dbv44bhurMbg="
+
+ota:
+  - platform: esphome
+    password: "acc668e3e045a4531a76df331f052a2c"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Pc Fallback Hotspot"
+    password: "rESJR7DHahqK"
+
+captive_portal:
+
+
+
+
+switch:
+  - platform: gpio
+    pin: GPIO15
+    name: "PC Power (Relé 1)"
+    id: relay1
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:desktop-tower"
+    internal: true  # Skjul direkte kontroll, bruk knappene nedenfor i stedet
+    
+  - platform: gpio
+    pin: GPIO2
+    name: "Relé 2"
+    id: relay2
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:power-socket-eu"
+
+# PC Power knapper
+button:
+  - platform: template
+    name: "PC Power Button"
+    icon: "mdi:power"
+    on_press:
+      - switch.turn_on: relay1
+      - delay: 500ms
+      - switch.turn_off: relay1
+      
+  - platform: template
+    name: "PC Force Shutdown"
+    icon: "mdi:power-off"
+    on_press:
+      - switch.turn_on: relay1
+      - delay: 5s
+      - switch.turn_off: relay1
+    
+
+    

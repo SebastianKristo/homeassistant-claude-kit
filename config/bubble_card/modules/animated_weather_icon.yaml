@@ -1,0 +1,49 @@
+animated_weather_icon:
+    name: "Animated Weather Icon"
+    version: "1.0"
+    creator: "HAuser1234"
+    link: "https://github.com/Clooos/Bubble-Card/discussions/1772"
+
+    supported:
+        - button
+
+    description: |
+        This is a Module that allows you to use .svg images to replace the standart weather icons.
+        
+        Just make a new folder in /www/community/
+        
+        called animated-weather-icons/icons/
+        
+        and copy all svg files from this repo in there:
+        https://github.com/wowgamr/animated-weather-card/tree/master/themes/icons
+        
+        Then choose your desired weather entity and you are done :)
+        <br><br>
+        <code-block><pre>
+        animated_weather_icon: 
+            weather_entity: YOUR_VALUE
+        </pre></code-block>
+
+    code: |
+        .bubble-icon-container {
+          background-image: url("/hacsfiles/animated-weather-icons/icons/${
+            this.config.animated_weather_icon?.weather_entity
+              ? hass.states[this.config.animated_weather_icon.weather_entity]?.state
+              : 'cloudy'
+          }.svg") !important;
+          background-size: contain !important;
+          background-repeat: no-repeat !important;
+          background-position: center !important;
+          background-color: transparent !important;
+        }
+        .bubble-icon {
+          display: none !important;
+        }
+
+    editor:
+      - name: weather_entity
+        label: Weather Entity
+        selector:
+          entity:
+            filter:
+              domain: weather

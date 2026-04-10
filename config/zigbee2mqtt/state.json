@@ -1,0 +1,91 @@
+{
+    "0x6c5cb1fffe6188e9": {
+        "state": "OFF",
+        "linkquality": 153,
+        "brightness": 200,
+        "color_temp": 370,
+        "color_mode": "color_temp"
+    },
+    "0xa4c138e965ab65dd": {
+        "battery": 100,
+        "temperature": 17.9,
+        "humidity": 86,
+        "temperature_unit": "celsius",
+        "temperature_calibration": 0,
+        "humidity_calibration": 0,
+        "temperature_sampling": 30,
+        "soil_warning": 20,
+        "soil_calibration": 0,
+        "soil_sampling": 30,
+        "soil_moisture": 99,
+        "linkquality": 83
+    },
+    "0xa4c138f6c463d9a8": {
+        "battery": 100,
+        "contact": false,
+        "sensitivity": 40,
+        "vibration": false,
+        "linkquality": 109
+    },
+    "0xa4c13825e41b1b34": {
+        "battery": 100,
+        "linkquality": 65,
+        "vibration": false,
+        "contact": true,
+        "sensitivity": 40
+    },
+    "0xa4c13804f257ecff": {
+        "battery": 75,
+        "contact": true,
+        "sensitivity": 40,
+        "vibration": false,
+        "linkquality": 109
+    },
+    "0xa4c138ba387e41b8": {
+        "battery": 75,
+        "contact": false,
+        "sensitivity": 40,
+        "vibration": false,
+        "linkquality": 98
+    },
+    "0xa4c13828f02aa6d2": {
+        "battery": 100,
+        "contact": false,
+        "sensitivity": 40,
+        "vibration": false,
+        "linkquality": 87
+    },
+    "0xa4c1381f3d643fe1": {
+        "battery": 100,
+        "linkquality": 83,
+        "contact": false,
+        "sensitivity": 40,
+        "vibration": false
+    },
+    "0xa4c138e04ab9939d": {
+        "battery": 100,
+        "contact": true,
+        "sensitivity": 40,
+        "vibration": false,
+        "linkquality": 51
+    },
+    "0xa4c1381be7bd0fea": {
+        "contact": true,
+        "sensitivity": 40,
+        "battery": 100,
+        "vibration": false,
+        "linkquality": 0
+    },
+    "0x286d97000108a779": {
+        "battery": 11,
+        "contact": false,
+        "tamper": false,
+        "battery_low": false,
+        "moving": true,
+        "z_axis": -1018,
+        "y_axis": 50,
+        "x_axis": -162,
+        "linkquality": 94,
+        "temperature": 20.16
+    }
+}
