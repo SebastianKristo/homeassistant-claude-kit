@@ -1,0 +1,861 @@
+###############################################################################
+# KLIMASTYRING - KOMPLETT PAKKE
+# Rekkehus Oslo, 1980-tall
+# Komforttemp: 22°C | Sebastian soverom natttemp: 19°C | Fastledd: max 5kW
+# Strømpris: 90 øre dag / 80 øre natt
+###############################################################################
+
+###############################################################################
+# INPUT BOOLEAN - Moduser
+###############################################################################
+input_boolean:
+  helgemodus:
+    name: "Helgemodus - Klimastyring - Claude"
+    icon: mdi:home-weekend
+
+  helgemodus_manuell:
+    name: "Helgemodus manuell aktivert - Klimastyring - Claude"
+    icon: mdi:hand-back-right
+
+  sommermodus:
+    name: "Sommermodus - Klimastyring - Claude"
+    icon: mdi:weather-sunny
+
+  sommermodus_manuell:
+    name: "Sommermodus manuell - Klimastyring - Claude"
+    icon: mdi:sun-thermometer
+
+  sebastian_nattmodus_aktiv:
+    name: "Sebastian nattmodus aktiv - Klimastyring - Claude"
+    icon: mdi:weather-night
+
+###############################################################################
+# INPUT NUMBER - Temperaturinnstillinger
+###############################################################################
+input_number:
+  komforttemp:
+    name: "Komforttemperatur - Klimastyring - Claude"
+    min: 15
+    max: 25
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+    initial: 22
+
+  sebastian_nattemp:
+    name: "Sebastian natttemperatur - Klimastyring - Claude"
+    min: 15
+    max: 22
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-low
+    initial: 19
+
+  helgemodus_temp:
+    name: "Helgemodus temperatur - Klimastyring - Claude"
+    min: 15
+    max: 22
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-minus
+    initial: 20
+
+  sommermodus_temp:
+    name: "Sommermodus temperatur (panelovner) - Klimastyring - Claude"
+    min: 15
+    max: 20
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:sun-thermometer
+    initial: 18
+
+  # Antall grader som justeres per trinn ved gradvis oppvarming (fastledd-beskyttelse)
+  oppvarming_trinn:
+    name: "Oppvarming gradertrinn - Klimastyring - Claude"
+    min: 0.5
+    max: 2
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:stairs-up
+    initial: 1
+
+  # Temperatur i borte-modus (anti-frost + minimal energi)
+  borte_temp:
+    name: "Borte-modus temperatur - Klimastyring - Claude"
+    min: 10
+    max: 18
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:airplane
+    initial: 15
+
+  # Makspris for å kjøre morgenforvarming (kr/kWh)
+  strompris_forvarming_terskel:
+    name: "Strømpris terskel morgenforvarming - Klimastyring - Claude"
+    min: 0.3
+    max: 2.0
+    step: 0.05
+    unit_of_measurement: "kr/kWh"
+    icon: mdi:currency-usd
+    initial: 0.75
+
+###############################################################################
+# INPUT SELECT
+###############################################################################
+input_select:
+  klimamodus:
+    name: "Klimamodus - Klimastyring - Claude"
+    options:
+      - "Normal"
+      - "Helg"
+      - "Sommer"
+      - "Borte"
+    icon: mdi:home-thermometer
+
+###############################################################################
+# INPUT DATETIME - Tidspunkter
+###############################################################################
+input_datetime:
+  sebastian_leggetid:
+    name: "Sebastian leggetid - Klimastyring - Claude"
+    has_time: true
+    has_date: false
+    initial: "23:00:00"
+
+  sebastian_oppstigingstid:
+    name: "Sebastian oppstigingstid - Klimastyring - Claude"
+    has_time: true
+    has_date: false
+    initial: "07:00:00"
+
+  sebastian_foroppvarming_start:
+    name: "Sebastian foroppvarming start - Klimastyring - Claude"
+    has_time: true
+    has_date: false
+    initial: "05:00:00" # 2 timer før 07:00
+
+###############################################################################
+# TEMPLATE SENSORS
+###############################################################################
+template:
+  - sensor:
+      - name: "Estimert effekt panelovner - Klimastyring - Claude"
+        unique_id: estimert_effekt_panelovner
+        unit_of_measurement: "W"
+        icon: mdi:lightning-bolt
+        state: >
+          {% set e = states('sensor.strommaler_effekt') | float(0) %}
+          {{ e | round(0) }}
+
+      - name: "Fastledd margin - Klimastyring - Claude"
+        unique_id: fastledd_margin
+        unit_of_measurement: "W"
+        icon: mdi:gauge
+        state: >
+          {% set effekt = states('sensor.strommaler_effekt') | float(0) %}
+          {{ (5000 - effekt) | round(0) }}
+
+      - name: "Strømpris nå - Klimastyring - Claude"
+        unique_id: strompris_na
+        unit_of_measurement: "øre/kWh"
+        icon: mdi:currency-usd
+        state: >
+          {% set t = now().hour %}
+          {% if t >= 6 and t < 22 %}
+            90
+          {% else %}
+            80
+          {% endif %}
+
+      - name: "Helgemodus status - Klimastyring - Claude"
+        unique_id: helgemodus_status
+        state: >
+          {% if is_state('input_boolean.helgemodus', 'on') %}
+            Aktiv
+          {% else %}
+            Inaktiv
+          {% endif %}
+
+      - name: "Sommermodus auto trigger - Klimastyring - Claude"
+        unique_id: sommermodus_auto_trigger
+        # Basert på gjennomsnittstemperatur siste 7 dager - bruker weather entity
+        # Enkel logikk: hvis gjennomsnitt utetemperatur > 15°C flere dager på rad
+        state: >
+          {% set maned = now().month %}
+          {% if maned >= 5 and maned <= 9 %}
+            true
+          {% else %}
+            false
+          {% endif %}
+
+###############################################################################
+# AUTOMATISERINGER
+###############################################################################
+automation:
+  ##############################################################################
+  # 1. SEBASTIAN SOVEROM - NATT (senk til 19°C kl 23)
+  ##############################################################################
+  - id: sebastian_nattmodus_start
+    alias: "Sebastian - Start nattmodus kl 23 - Klimastyring - Claude"
+    description: "Senker temperaturen i Sebastian soverom til 19°C"
+    trigger:
+      - platform: time
+        at: input_datetime.sebastian_leggetid
+    condition:
+      - condition: state
+        entity_id: input_boolean.sommermodus
+        state: "off"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.sebastian_panelovn
+        data:
+          temperature: "{{ states('input_number.sebastian_nattemp') | float }}"
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.sebastian_nattmodus_aktiv
+
+  ##############################################################################
+  # 2. SEBASTIAN SOVEROM - FOROPPVARMING (2 timer før oppstigingstid)
+  ##############################################################################
+  - id: sebastian_foroppvarming
+    alias: "Sebastian - Foroppvarming 2 timer før han våkner - Klimastyring - Claude"
+    description: "Gradvis oppvarming til 22°C for å unngå å sprenge fastleddet"
+    trigger:
+      - platform: time
+        at: input_datetime.sebastian_foroppvarming_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.sebastian_nattmodus_aktiv
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.sommermodus
+        state: "off"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.sebastian_panelovn
+        data:
+          temperature: "{{ states('input_number.komforttemp') | float }}"
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.sebastian_nattmodus_aktiv
+
+  ##############################################################################
+  # 3. FREDAG KL 10 - SPØR OM HELGEMODUS (kun hvis ikke allerede manuelt på)
+  ##############################################################################
+  - id: helgemodus_fredag_varsling
+    alias: "Helgemodus - Fredagsvarsling kl 10 - Klimastyring - Claude"
+    description: "Spør om helgemodus skal aktiveres. Sendes ikke om manuell er på."
+    trigger:
+      - platform: time
+        at: "10:00:00"
+    condition:
+      - condition: time
+        weekday:
+          - fri
+      - condition: state
+        entity_id: input_boolean.helgemodus_manuell
+        state: "off"
+      - condition: state
+        entity_id: input_boolean.sommermodus
+        state: "off"
+    action:
+      - service: notify.notify
+        data:
+          title: "🏠 Helgemodus"
+          message: "Vil du aktivere helgemodus i helgen? Temperaturen senkes til {{ states('input_number.helgemodus_temp') }}°C for å spare strøm."
+          data:
+            actions:
+              - action: "HELGEMODUS_PA"
+                title: "Ja, aktiver"
+              - action: "HELGEMODUS_NEI"
+                title: "Nei takk"
+
+  ##############################################################################
+  # 4. RESPONS - HELGEMODUS PÅ (fra notifikasjon)
+  ##############################################################################
+  - id: helgemodus_aktiver_fra_notifikasjon
+    alias: "Helgemodus - Aktiver fra notifikasjon - Klimastyring - Claude"
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "HELGEMODUS_PA"
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.helgemodus
+      - service: script.sett_helgemodus_temp
+      - service: notify.notify
+        data:
+          title: "✅ Helgemodus aktivert"
+          message: "Temperaturen er satt til {{ states('input_number.helgemodus_temp') }}°C i helgen."
+
+  ##############################################################################
+  # 5. SØNDAG KL 10 - SPØR OM HJEMKOMST
+  ##############################################################################
+  - id: helgemodus_sondag_hjemkomst
+    alias: "Helgemodus - Spør om hjemkomst søndag kl 10 - Klimastyring - Claude"
+    trigger:
+      - platform: time
+        at: "10:00:00"
+    condition:
+      - condition: time
+        weekday:
+          - sun
+      - condition: state
+        entity_id: input_boolean.helgemodus
+        state: "on"
+    action:
+      - service: notify.notify
+        data:
+          title: "🏠 Hjemkomst"
+          message: "Kommer du hjem i dag? Temperaturen vil gradvis gjenopprettes til {{ states('input_number.komforttemp') }}°C."
+          data:
+            actions:
+              - action: "HJEMKOMST_JA"
+                title: "Ja, jeg kommer hjem"
+              - action: "HJEMKOMST_NEI"
+                title: "Nei, helgemodus fortsetter"
+
+  ##############################################################################
+  # 6. RESPONS - HJEMKOMST JA → GRADVIS GJENOPPVARMING
+  ##############################################################################
+  - id: helgemodus_gjenoppvarming
+    alias: "Helgemodus - Gradvis gjenoppvarming ved hjemkomst - Klimastyring - Claude"
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "HJEMKOMST_JA"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.helgemodus
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.helgemodus_manuell
+      - service: script.gradvis_gjenoppvarming
+      - service: notify.notify
+        data:
+          title: "🔄 Gjenoppvarming startet"
+          message: "Temperaturen økes gradvis til {{ states('input_number.komforttemp') }}°C. Fastleddet på 5kW overskrides ikke."
+
+  ##############################################################################
+  # 7. SØNDAG KVELD - HELGEMODUS AUTO AV (hvis ikke hjemkomst bekreftet)
+  ##############################################################################
+  - id: helgemodus_sondag_av
+    alias: "Helgemodus - Automatisk av søndag kl 20 - Klimastyring - Claude"
+    trigger:
+      - platform: time
+        at: "20:00:00"
+    condition:
+      - condition: time
+        weekday:
+          - sun
+      - condition: state
+        entity_id: input_boolean.helgemodus
+        state: "on"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.helgemodus
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.helgemodus_manuell
+      - service: script.sett_komforttemp
+      - service: notify.notify
+        data:
+          title: "🏠 Helgemodus avsluttet"
+          message: "Helgemodus er avsluttet. Temperaturen gjenopprettes til {{ states('input_number.komforttemp') }}°C."
+
+  ##############################################################################
+  # 8. SOMMERMODUS - AUTO PÅ basert på måned/temperatur
+  ##############################################################################
+  - id: sommermodus_auto_pa
+    alias: "Sommermodus - Automatisk aktivering - Klimastyring - Claude"
+    description: "Aktiverer sommermodus i mai-september hvis ikke allerede på"
+    trigger:
+      - platform: template
+        value_template: "{{ states('sensor.sommermodus_auto_trigger') == 'true' }}"
+    condition:
+      - condition: state
+        entity_id: input_boolean.sommermodus
+        state: "off"
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.sommermodus
+      - service: script.sett_sommermodus_temp
+      - service: notify.notify
+        data:
+          title: "☀️ Sommermodus aktivert"
+          message: "Panelovnene er satt til {{ states('input_number.sommermodus_temp') }}°C. Gulvvarme fortsetter som normalt."
+
+  ##############################################################################
+  # 9. SOMMERMODUS - AUTO AV
+  ##############################################################################
+  - id: sommermodus_auto_av
+    alias: "Sommermodus - Automatisk deaktivering - Klimastyring - Claude"
+    trigger:
+      - platform: template
+        value_template: "{{ states('sensor.sommermodus_auto_trigger') == 'false' }}"
+    condition:
+      - condition: state
+        entity_id: input_boolean.sommermodus
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.sommermodus_manuell
+        state: "off"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.sommermodus
+      - service: script.sett_komforttemp
+      - service: notify.notify
+        data:
+          title: "🍂 Sommermodus avsluttet"
+          message: "Temperaturen er gjenopprettet til {{ states('input_number.komforttemp') }}°C."
+
+  ##############################################################################
+  # 10. FASTLEDD VAKT - Overvåk og senk ved behov
+  ##############################################################################
+  - id: fastledd_overvaking
+    alias: "Fastledd - Senk ved høyt forbruk - Klimastyring - Claude"
+    description: "Senker gulvvarme midlertidig hvis effekt nærmer seg 5kW"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.strommaler_effekt
+        above: 4500
+        for:
+          minutes: 2
+    action:
+      - service: notify.notify
+        data:
+          title: "⚡ Høyt strømforbruk"
+          message: "Effekt: {{ states('sensor.strommaler_effekt') }}W. Justerer gulvvarme midlertidig."
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.kjokken_gulvvarme
+            - climate.bad_gulvvarme
+        data:
+          temperature: 18
+
+  ##############################################################################
+  # 11. FASTLEDD NORMALISERING - Gjenopprett gulvvarme
+  ##############################################################################
+  - id: fastledd_normalisering
+    alias: "Fastledd - Gjenopprett gulvvarme - Klimastyring - Claude"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.strommaler_effekt
+        below: 3500
+        for:
+          minutes: 10
+    condition:
+      - condition: state
+        entity_id: input_boolean.sommermodus
+        state: "off"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.kjokken_gulvvarme
+            - climate.bad_gulvvarme
+        data:
+          temperature: "{{ states('input_number.komforttemp') | float }}"
+
+  ##############################################################################
+  # 12. NATTSENKING ALLE ROM (kun i helgemodus, hvis mer lønnsomt)
+  ##############################################################################
+  - id: helgemodus_nattsenking
+    alias: "Helgemodus - Nattsenking alle rom - Klimastyring - Claude"
+    trigger:
+      - platform: time
+        at: "22:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.helgemodus
+        state: "on"
+    action:
+      - service: script.sett_helgemodus_temp
+
+  ##############################################################################
+  # 13. STRØMPRIS - MORGENFORVARMING (kun hvis prisen faktisk er billig)
+  ##############################################################################
+  - id: natt_strompris_forvarming
+    alias: "Strømpris - Forvarm kl 05 til 06 (billig nattstrøm) - Klimastyring - Claude"
+    description: "Forvarmer huset hvis strømprisen er under terskel. Bruker ekte prissensor."
+    trigger:
+      - platform: time
+        at: "05:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.helgemodus
+        state: "off"
+      - condition: state
+        entity_id: input_boolean.sommermodus
+        state: "off"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: input_select.klimamodus
+            state: "Borte"
+      # Kun forvarm hvis prisen faktisk er billig nok
+      - condition: template
+        value_template: >
+          {{ states('sensor.norgespris_pris_na') | float(999)
+             < states('input_number.strompris_forvarming_terskel') | float(0.75) }}
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.trappegang_panelovn
+            - climate.stue_oljefyr
+            - climate.stue_panelovn
+            - climate.kjokken_panelovn
+        data:
+          temperature: "{{ [states('input_number.komforttemp') | float + 0.5, 23] | min }}"
+
+  ##############################################################################
+  # 14. KLIMAMODUS MASTER - Synkroniser select → booleans + temperatur
+  ##############################################################################
+  - id: klimamodus_master_sync
+    alias: "Klimamodus - Master synkronisering - Klimastyring - Claude"
+    description: >
+      input_select.klimamodus er master. Endring her oppdaterer booleans
+      og setter riktig temperatur i alle rom.
+    trigger:
+      - platform: state
+        entity_id: input_select.klimamodus
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.klimamodus
+                state: "Normal"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.helgemodus
+                    - input_boolean.helgemodus_manuell
+                    - input_boolean.sommermodus
+              - service: script.gradvis_gjenoppvarming
+              - service: notify.notify
+                data:
+                  title: "🏠 Normal modus"
+                  message: "Temperaturen gjenopprettes gradvis til {{ states('input_number.komforttemp') }}°C."
+          - conditions:
+              - condition: state
+                entity_id: input_select.klimamodus
+                state: "Helg"
+            sequence:
+              - service: input_boolean.turn_on
+                target:
+                  entity_id:
+                    - input_boolean.helgemodus
+                    - input_boolean.helgemodus_manuell
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.sommermodus
+              - service: script.sett_helgemodus_temp
+              - service: notify.notify
+                data:
+                  title: "🛋️ Helgemodus"
+                  message: "Temperaturen satt til {{ states('input_number.helgemodus_temp') }}°C."
+          - conditions:
+              - condition: state
+                entity_id: input_select.klimamodus
+                state: "Sommer"
+            sequence:
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.sommermodus
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.helgemodus
+                    - input_boolean.helgemodus_manuell
+              - service: script.sett_sommermodus_temp
+              - service: notify.notify
+                data:
+                  title: "☀️ Sommermodus"
+                  message: "Panelovner satt til {{ states('input_number.sommermodus_temp') }}°C."
+          - conditions:
+              - condition: state
+                entity_id: input_select.klimamodus
+                state: "Borte"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.helgemodus
+                    - input_boolean.helgemodus_manuell
+                    - input_boolean.sommermodus
+              - service: climate.set_temperature
+                target:
+                  entity_id:
+                    - climate.sebastian_panelovn
+                    - climate.trappegang_panelovn
+                    - climate.cybele_panelovn
+                    - climate.stue_oljefyr
+                    - climate.stue_panelovn
+                    - climate.kjokken_panelovn
+                    - climate.kjokken_gulvvarme
+                    - climate.bad_gulvvarme
+                data:
+                  temperature: "{{ states('input_number.borte_temp') | float }}"
+              - service: notify.notify
+                data:
+                  title: "✈️ Borte-modus aktivert"
+                  message: >
+                    Alle rom satt til {{ states('input_number.borte_temp') }}°C for å spare strøm.
+                    Husk å bytte til Normal når du er hjemme igjen.
+    mode: queued
+
+###############################################################################
+# SCRIPTS
+###############################################################################
+script:
+  ##############################################################################
+  # Sett alle rom til komforttemperatur
+  ##############################################################################
+  sett_komforttemp:
+    alias: "Sett komforttemperatur alle rom - Klimastyring - Claude"
+    sequence:
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.sebastian_panelovn
+            - climate.trappegang_panelovn
+            - climate.cybele_panelovn
+            - climate.stue_oljefyr
+            - climate.stue_panelovn
+            - climate.kjokken_panelovn
+            - climate.kjokken_gulvvarme
+            - climate.bad_gulvvarme
+        data:
+          temperature: "{{ states('input_number.komforttemp') | float }}"
+
+  ##############################################################################
+  # Sett helgemodus-temperatur (unntatt gulvvarme som kjøres uendret)
+  ##############################################################################
+  sett_helgemodus_temp:
+    alias: "Sett helgemodus temperatur - Klimastyring - Claude"
+    sequence:
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.sebastian_panelovn
+            - climate.trappegang_panelovn
+            - climate.cybele_panelovn
+            - climate.stue_oljefyr
+            - climate.stue_panelovn
+            - climate.kjokken_panelovn
+        data:
+          temperature: "{{ states('input_number.helgemodus_temp') | float }}"
+
+  ##############################################################################
+  # Sett sommermodus-temperatur (kun panelovner, gulvvarme urørt)
+  ##############################################################################
+  sett_sommermodus_temp:
+    alias: "Sett sommermodus temperatur - Klimastyring - Claude"
+    sequence:
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.sebastian_panelovn
+            - climate.trappegang_panelovn
+            - climate.cybele_panelovn
+            - climate.stue_oljefyr
+            - climate.stue_panelovn
+            - climate.kjokken_panelovn
+        data:
+          temperature: "{{ states('input_number.sommermodus_temp') | float }}"
+
+  ##############################################################################
+  # Gradvis gjenoppvarming - respekterer 5kW fastledd
+  # Øker med 1°C per 15 min, venter til effekt er under 4kW mellom hver trinn
+  ##############################################################################
+  gradvis_gjenoppvarming:
+    alias: "Gradvis gjenoppvarming (fastledd-sikker) - Klimastyring - Claude"
+    sequence:
+      # Trinn 1 - Sebastian soverom (minst varme å hente)
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.sebastian_panelovn
+        data:
+          temperature: "{{ [states('input_number.helgemodus_temp') | float + states('input_number.oppvarming_trinn') | float, states('input_number.komforttemp') | float] | min }}"
+      - delay: "00:15:00"
+      - wait_template: "{{ states('sensor.strommaler_effekt') | float < 4000 }}"
+        timeout: "00:30:00"
+
+      # Trinn 2 - Cybele soverom
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.cybele_panelovn
+        data:
+          temperature: "{{ [states('input_number.helgemodus_temp') | float + states('input_number.oppvarming_trinn') | float, states('input_number.komforttemp') | float] | min }}"
+      - delay: "00:15:00"
+      - wait_template: "{{ states('sensor.strommaler_effekt') | float < 4000 }}"
+        timeout: "00:30:00"
+
+      # Trinn 3 - Kjøkken
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.kjokken_panelovn
+            - climate.kjokken_gulvvarme
+        data:
+          temperature: "{{ states('input_number.komforttemp') | float }}"
+      - delay: "00:15:00"
+      - wait_template: "{{ states('sensor.strommaler_effekt') | float < 4000 }}"
+        timeout: "00:30:00"
+
+      # Trinn 4 - Stue og trappegang
+      - service: climate.set_temperature
+        target:
+          entity_id:
+            - climate.stue_oljefyr
+            - climate.stue_panelovn
+            - climate.trappegang_panelovn
+        data:
+          temperature: "{{ states('input_number.komforttemp') | float }}"
+      - delay: "00:15:00"
+      - wait_template: "{{ states('sensor.strommaler_effekt') | float < 4000 }}"
+        timeout: "00:30:00"
+
+      # Trinn 5 - Bad (gulvvarme sist, tregest å varme opp)
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.bad_gulvvarme
+        data:
+          temperature: "{{ states('input_number.komforttemp') | float }}"
+
+      - service: notify.notify
+        data:
+          title: "✅ Gjenoppvarming fullført"
+          message: "Alle rom er nå tilbake på {{ states('input_number.komforttemp') }}°C. Maks effekt holdt under 5kW."
+
+  ##############################################################################
+  # Manuell aktivering av helgemodus (fra dashboard-knapp)
+  ##############################################################################
+  aktiver_helgemodus_manuelt:
+    alias: "Aktiver helgemodus manuelt - Klimastyring - Claude"
+    sequence:
+      - service: input_boolean.turn_on
+        target:
+          entity_id:
+            - input_boolean.helgemodus
+            - input_boolean.helgemodus_manuell
+      - service: script.sett_helgemodus_temp
+      - service: notify.notify
+        data:
+          title: "🏠 Helgemodus aktivert manuelt"
+          message: "Temperaturen er satt til {{ states('input_number.helgemodus_temp') }}°C. Du vil ikke motta varsling om helgemodus denne helgen."
+
+  ##############################################################################
+  # Deaktiver helgemodus manuelt
+  ##############################################################################
+  deaktiver_helgemodus:
+    alias: "Deaktiver helgemodus - Klimastyring - Claude"
+    sequence:
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.helgemodus
+            - input_boolean.helgemodus_manuell
+      - service: script.gradvis_gjenoppvarming
+
+  ##############################################################################
+  # Manuell sommermodus på
+  ##############################################################################
+  aktiver_sommermodus_manuelt:
+    alias: "Aktiver sommermodus manuelt - Klimastyring - Claude"
+    sequence:
+      - service: input_boolean.turn_on
+        target:
+          entity_id:
+            - input_boolean.sommermodus
+            - input_boolean.sommermodus_manuell
+      - service: script.sett_sommermodus_temp
+      - service: notify.notify
+        data:
+          title: "☀️ Sommermodus aktivert"
+          message: "Panelovner satt til {{ states('input_number.sommermodus_temp') }}°C. Gulvvarme er ikke berørt."
+
+  ##############################################################################
+  # Deaktiver sommermodus manuelt
+  ##############################################################################
+  deaktiver_sommermodus_manuelt:
+    alias: "Deaktiver sommermodus manuelt - Klimastyring - Claude"
+    sequence:
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.sommermodus
+            - input_boolean.sommermodus_manuell
+      - service: script.sett_komforttemp
+###############################################################################
+# DASHBOARD KORT (Lovelace YAML - legg til i din dashboard)
+###############################################################################
+# Legg dette til i configuration.yaml:
+#   homeassistant:
+#     packages:
+#       klima: !include climate_package.yaml
+#
+# Og legg dette til i din Lovelace dashboard:
+#
+# title: Klimastyring
+# views:
+#   - title: Klima
+#     cards:
+#       - type: entities
+#         title: Klimamodus
+#         entities:
+#           - input_select.klimamodus
+#           - input_boolean.helgemodus
+#           - input_boolean.sommermodus
+#           - sensor.strommaler_effekt
+#           - sensor.fastledd_margin
+#           - sensor.strompris_na
+#
+#       - type: thermostat
+#         entity: climate.sebastian_panelovn
+#         name: Sebastian soverom
+#
+#       - type: entities
+#         title: Temperaturinnstillinger
+#         entities:
+#           - input_number.komforttemp
+#           - input_number.sebastian_nattemp
+#           - input_number.helgemodus_temp
+#           - input_number.sommermodus_temp
+#
+#       - type: entities
+#         title: Tidspunkter
+#         entities:
+#           - input_datetime.sebastian_leggetid
+#           - input_datetime.sebastian_oppstigingstid
+#           - input_datetime.sebastian_foroppvarming_start
+#
+#       - type: button
+#         name: Aktiver helgemodus
+#         tap_action:
+#           action: call-service
+#           service: script.aktiver_helgemodus_manuelt
+#
+#       - type: button
+#         name: Deaktiver helgemodus
+#         tap_action:
+#           action: call-service
+#           service: script.deaktiver_helgemodus
+#
+#       - type: button
+#         name: ☀️ Aktiver sommermodus
+#         tap_action:
+#           action: call-service
+#           service: script.aktiver_sommermodus_manuelt
